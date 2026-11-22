@@ -1,36 +1,41 @@
-# M1 – Role, współpraca i ślad wkładu (5 osób)
+# M1 – Role, komunikacja i ślad wkładu (5 osób)
 
-## RACI – propozycja
+**Uzgodniony podział zespołu (22.11.2026):** Patryk – lider / architekt; Michał i Kamil – Cloud / DevOps; Kajetan – Security Engineer; Bartek – AI / Monitoring.
 
-R = wykonuje, A = odpowiada za końcowy wynik, C = konsultowany, I = informowany.
+> Materiały WSTI przewidują 4 osoby. Skład pięcioosobowy wymaga potwierdzenia przez prowadzącego. Współdzielenie roli Cloud / DevOps nie oznacza dodatkowej piątej roli.
 
-| Obszar | Lider/Architekt | DevOps | Security | Infra | AI/Monitoring |
+## Macierz RACI
+
+R = realizuje, A = odpowiada za wynik, C = konsultowany, I = informowany. W każdym wierszu jest jedna osoba A. Osoby Michał i Kamil współpracują przy Cloud / DevOps, z wyraźnym właścicielem danego zadania.
+
+| Obszar | Patryk | Michał | Kamil | Kajetan | Bartek |
 |---|---|---|---|---|---|
-| Karta projektu, backlog, review | A/R | C | C | C | C |
-| Architektura i DFD | A/R | C | C | R | C |
-| CI/CD, rejestr i artefakty | A | R | C | C | I |
-| STRIDE, IAM, skany, polityki | A | C | R | C | I |
-| Edge/Cloud, sieć, deploy, rollback | A | C | C | R | I |
-| Monitoring, AI/ML, metryki | A | I | C | C | R |
-| Prezentacja / dokumentacja końcowa | A | R | R | R | R |
+| Karta projektu, backlog i sprint review | A/R | C | C | C | C |
+| Architektura logiczna i DFD | A/R | C | C | C | C |
+| CI/CD, GitHub Actions, security gates | C | A/R | R | R | I |
+| Obraz OCI, GHCR, SBOM i Docker | C | R | A/R | C | I |
+| VM Edge/Cloud, sieć, deployment i rollback | C | R | A/R | C | I |
+| Model zagrożeń STRIDE, IAM, ryzyka | C | C | C | A/R | C |
+| Telemetria, dashboard i AI/ML | C | C | C | C | A/R |
+| Integracja końcowa i demonstracja | A/R | R | R | R | R |
 
-Lider odpowiada za koordynację i integrację, lecz techniczne decyzje wymagają przeglądu odpowiedniego specjalisty. Każdy członek powinien mieć widoczny wkład w commitach, issue, PR i demonstracji.
+## Zasady współpracy
 
-## Zasady pracy
-
-- Repozytorium GitHub: [UZUPEŁNIĆ URL]. Issues i board jako backlog; PR z minimum jednym review.
-- Spotkanie synchronizacyjne: [USTALIĆ dzień, godzinę, kanał].
-- Rejestr decyzji i ryzyk aktualizowany po przeglądzie sprintu.
-- Materiały do konsultacji: orientacyjnie 48 h przed zajęciami (zalecenie z planu).
-- Bez sekretów i danych osobowych w repo, commitach, screenshots i logach.
-- Podział obowiązków dotyczy pięcioosobowego wariantu **warunkowego** – zgodę prowadzącego należy uzyskać.
+- Repozytorium: https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app
+- Issues i Pull Requests jako historia zadań; każda zmiana powinna mieć review innej osoby.
+- Spotkania synchronizacyjne: [USTALIĆ termin i kanał].
+- Decyzje techniczne i ryzyka dokumentowane po każdym przeglądzie sprintu.
+- Materiały najlepiej udostępniać 48 godzin przed kolejnymi zajęciami.
+- Bez sekretów i danych rzeczywistych w kodzie, logach i zrzutach.
 
 ## Rejestr wkładu
 
-| Członek | Zadanie / issue | PR / commit | Dowód / data | Odbiór |
+| Osoba | Rola | Issue / zadanie | PR / commit | Dowód / data |
 |---|---|---|---|---|
-| [OSOBA 1] | [ ] | [ ] | [ ] | [ ] |
-| [OSOBA 2] | [ ] | [ ] | [ ] | [ ] |
-| [OSOBA 3] | [ ] | [ ] | [ ] | [ ] |
-| [OSOBA 4] | [ ] | [ ] | [ ] | [ ] |
-| [OSOBA 5] | [ ] | [ ] | [ ] | [ ] |
+| Patryk | Lider / architekt | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] |
+| Michał | Cloud / DevOps | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] |
+| Kamil | Cloud / DevOps | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] |
+| Kajetan | Security Engineer | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] |
+| Bartek | AI / Monitoring | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] |
+
+**Uwaga:** sama deklaracja ról nie potwierdza indywidualnego wkładu. Tabelę należy aktualizować na podstawie wykonanych prac.

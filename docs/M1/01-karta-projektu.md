@@ -5,21 +5,21 @@
 **Spotkanie M1:** 16.10.2026, 19:15–20:45.  
 **Temat:** 04. DevSecOps: bezpieczne wdrażanie aplikacji Edge–Cloud.  
 **Nazwa zespołu:** [UZUPEŁNIĆ].  
-**Repozytorium GitHub:** [UZUPEŁNIĆ URL].
+**Repozytorium GitHub:** https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app.
 
 > **Uwaga organizacyjna:** dokumenty przedmiotu opisują zespoły **czteroosobowe**, natomiast projekt ten zakłada **5 osób na prośbę zespołu**. Zmianę liczebności należy zatwierdzić z prowadzącym. Nie wpisywać, że zgodę już uzyskano.
 
 ## Skład pięcioosobowego zespołu
 
-| Nr | Imię i nazwisko | Rola proponowana | Zakres odpowiedzialności | Status |
+| Nr | Imię | Rola | Zakres odpowiedzialności | Status |
 |---|---|---|---|---|
-| 1 | [OSOBA 1] | Lider projektu / Architekt | Cele, diagramy, backlog, integracja, dokumentacja, sprint reviews | Do potwierdzenia |
-| 2 | [OSOBA 2] | DevOps / CI-CD | GitHub Actions, build, GHCR, release, pipeline | Do potwierdzenia |
-| 3 | [OSOBA 3] | Security Engineer | STRIDE, ryzyka, IAM, SAST/SCA, security gates | Do potwierdzenia |
-| 4 | [OSOBA 4] | Edge / Cloud Infrastructure Engineer | VM, segmentacja, Compose, deployment, rollback | Do potwierdzenia |
-| 5 | [OSOBA 5] | AI / Monitoring Engineer | Telemetria z ≥2 źródeł, alerty, model AI/ML, ewaluacja | Do potwierdzenia |
+| 1 | Patryk | Lider / architekt | Karta projektu, diagramy, backlog, koordynacja, integracja i przeglądy | Uzgodnione w zespole |
+| 2 | Michał | Cloud / DevOps | GitHub Actions, pipeline CI/CD, publikacja artefaktów, konfiguracja Cloud/Edge i wdrożenia (wspólnie z Kamilem) | Uzgodnione w zespole |
+| 3 | Kamil | Cloud / DevOps | Docker, GHCR, środowiska Edge/Cloud, automatyzacja wdrożeń i rollback (wspólnie z Michałem) | Uzgodnione w zespole |
+| 4 | Kajetan | Security Engineer | STRIDE, rejestr ryzyk, zabezpieczenia, SAST/SCA, kontrola uprawnień i testy bezpieczeństwa | Uzgodnione w zespole |
+| 5 | Bartek | AI / Monitoring | Metryki z wielu źródeł, dashboard, alerty, model ML i metryki jego jakości | Uzgodnione w zespole |
 
-Prowadzący proponuje cztery role. Wersja 5-osobowa rozdziela jego rolę **Cloud/DevOps** na **DevOps** i **Infrastructure**, zachowując wszystkie obowiązkowe kompetencje.
+Prowadzący proponuje cztery role. W pięcioosobowym zespole rolę **Cloud / DevOps** współdzielą **Michał i Kamil**, zachowując cztery obszary odpowiedzialności. Rozdział konkretnych zadań między nimi ustalono w backlogu; formalna zgoda prowadzącego na pięć osób nadal wymaga potwierdzenia.
 
 ## Problem biznesowy i cel
 
@@ -72,8 +72,8 @@ flowchart LR
 ## Kryteria ukończenia M1
 
 - [ ] Zatwierdzone 5 osób przez prowadzącego (odstępstwo od zasad 4-osobowych).
-- [ ] Nazwa zespołu, imiona i role wpisane i uzgodnione.
-- [ ] Repozytorium utworzone, URL działa.
+- [ ] Nazwa zespołu uzupełniona; **imiona i role uzgodnione (5 osób)**.
+- [x] Repozytorium utworzone i adres podany.
 - [ ] Problem, cel, odbiorca, MVP, technologie, ryzyka i przepływ omówione.
 - [ ] Każdy członek ma ustalony wkład i pierwsze zadanie w backlogu.
 

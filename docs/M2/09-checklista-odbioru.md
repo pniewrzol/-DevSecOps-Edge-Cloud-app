@@ -2,7 +2,7 @@
 
 **Zalecany termin udostępnienia materiałów:** 25.11.2026 (48 h przed spotkaniem; zalecenie, nie twardy termin zaliczenia).
 
-- [ ] Karta projektu w `docs/M1/` zawiera nazwę zespołu, pięć osób, role i link do repo.
+- [ ] Karta M1: pięć osób i role uzgodnione, link repo wpisany; nazwa zespołu i zgoda prowadzącego nadal do uzupełnienia.
 - [ ] Zgoda prowadzącego na odstępstwo od 4-osobowego składu jest potwierdzona.
 - [ ] Diagram architektury pokazuje CI, rejestr, Edge, Cloud, monitoring i AI/ML.
 - [ ] DFD zawiera źródła/magazyny danych, przepływy i granice zaufania.
@@ -16,12 +16,8 @@
 - [ ] W repo brak sekretów i danych rzeczywistych.
 - [ ] Każdy członek zespołu zna swoją część prezentacji.
 
+- [x] Lokalnie: 2/2 testy pytest zaliczone, serwer Uvicorn uruchomiony na 8003 (log 22.11.2026).
+
 ## Kryteria "gotowe do przeglądu"
 
 Dokumenty renderują się, diagramy Mermaid nie mają błędów składni, linki repo działają, a niewykonane elementy są jawnie oznaczone. Status PoC należy przedstawić zgodnie ze stanem faktycznym.
-
-## Potwierdzone wyniki lokalne – 22.11.2026
-
-- [x] Dwa testy pytest zaliczone.
-- [x] Uvicorn uruchomiony na porcie 8003.
-- [ ] Skanowanie CI/CD i publikacja GHCR do potwierdzenia.

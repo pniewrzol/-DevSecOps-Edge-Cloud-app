@@ -2,12 +2,12 @@
 
 **WSTI, Projekt Zespołowy: Bezpieczna Infrastruktura Hybrydowa z AI (2026/2027)**  
 **Pakiet:** M1 + M2 (plan, dokumentacja, szkielet PoC).  
-**Status:** propozycja do zatwierdzenia; testy CI, skan, publikacja GHCR i wdrożenie **nie zostały zweryfikowane**.  
-**Zespół:** planowane **5 osób** – **wymagana zgoda prowadzącego**, ponieważ źródłowe dokumenty zakładają zespoły 4-osobowe.
+**Status:** dokumentacja M1/M2 przygotowana; lokalne testy FastAPI **2/2 PASS (22.11.2026)**, start Uvicorn na porcie **8003** potwierdzony logiem. Testy CI, skany, GHCR i wdrożenie **nie zostały zweryfikowane**.  
+**Zespół (podział uzgodniony):** Patryk – lider / architekt; Michał i Kamil – Cloud / DevOps; Kajetan – Security Engineer; Bartek – AI / Monitoring. **Zgoda prowadzącego na pięcioosobowy skład nadal do potwierdzenia** (dokumenty źródłowe przewidują 4 osoby).
 
 ## Zacznij tutaj
 
-1. Uzupełnij [kartę M1](docs/M1/01-karta-projektu.md): nazwiska 5 osób, repozytorium, potwierdzenie zmiany liczebności.
+1. Uzupełnij [kartę M1](docs/M1/01-karta-projektu.md): nazwiska (jeśli wymagane), potwierdzenie zmiany liczebności.
 2. Przejrzyj [role i ślad wkładu](docs/M1/02-role-i-komunikacja.md), [plan sprintu](docs/M1/03-plan-pierwszego-sprintu.md) i [checklistę M1](docs/M1/04-checklista-M1.md).
 3. Zaprezentuj [architekturę](docs/M2/02-architektura.md), [DFD](docs/M2/03-przeplyw-danych.md), [STRIDE](docs/M2/04-model-zagrozen-STRIDE.md), [rejestr ryzyk](docs/M2/05-rejestr-ryzyk.md) oraz [backlog](docs/M2/06-backlog.md).
 4. Przejdź przez [checklistę M2](docs/M2/09-checklista-odbioru.md) i [prezentację](docs/M2/12-prezentacja-M2.md).
@@ -81,26 +81,20 @@ CI i GHCR wymagają konfiguracji repozytorium/permissions. Testy na żywym GitHu
 
 ## Uczciwy status
 
-- **Przygotowano:** dokumenty, diagramy Markdown/Mermaid, wstępne STRIDE/DFD/backlog, kod/szkielet PoC.
+- **Przygotowano:** dokumenty, diagramy Markdown/Mermaid, wstępne STRIDE/DFD/backlog, kod/szkielet PoC. **Potwierdzono:** lokalne 2 testy pytest PASS, start aplikacji 127.0.0.1:8003. Pozostają 3 ostrzeżenia deprecacyjne.
 - **Do wykonania:** personalizacja 5-osobowego składu i akceptacja prowadzącego, faktyczne repo, wykonanie CI i zapis dowodów.
 - **Etapy późniejsze:** automatyczny Edge deploy i rollback oraz rzeczywisty monitoring i AI/ML.
 
 Testy wykonywać wyłącznie na własnej odizolowanej infrastrukturze i danych syntetycznych.
 
+## Uzgodnione role zespołu
 
-## Zweryfikowane testy lokalne – 22.11.2026
+| Osoba | Rola |
+|---|---|
+| Patryk | Lider / architekt |
+| Michał | Cloud / DevOps (CI/CD i release) |
+| Kamil | Cloud / DevOps (infrastruktura i deployment) |
+| Kajetan | Security Engineer |
+| Bartek | AI / Monitoring |
 
-- **pytest:** 2/2 PASS, 3 ostrzeżenia deprecacyjne.
-- **FastAPI:** poprawne uruchomienie na `127.0.0.1:8003`.
-- **GitHub Actions / Trivy / GHCR / Edge:** do weryfikacji.
-- [Protokół testowy M2](docs/M2/13-testy-lokalne-2026-11-22.md).
-
-### Uruchomienie
-
-```bash
-./run-local.sh
-```
-
-- API: http://127.0.0.1:8003
-- Swagger: http://127.0.0.1:8003/docs
-- Health: http://127.0.0.1:8003/health
+Dowody testów lokalnych: [protokół M2](docs/M2/13-testy-lokalne-2026-11-22.md).

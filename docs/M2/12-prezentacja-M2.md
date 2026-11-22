@@ -9,6 +9,14 @@
 5. **1 min – Backlog:** najbliższe kamienie milowe M3 i M4 (tylko dzień odstępu).
 6. **1–2 min – PoC:** pokazać prawdziwy run Actions i raport Trivy; jeśli brak runu, jawnie powiedzieć, że nie wykonano.
 
+## Proponowany podział omówienia
+
+- **Patryk:** cel, MVP, diagram i DFD.
+- **Michał:** pipeline CI/CD, testy, publikacja GHCR.
+- **Kamil:** Docker i plan infrastruktury Edge/Cloud, wdrożenie oraz rollback.
+- **Kajetan:** model zagrożeń, ryzyka i kontrola bezpieczeństwa.
+- **Bartek:** telemetria i metryki jakości AI/ML.
+
 ## Możliwe pytania prowadzącego
 
 - **Co w projekcie jest hybrydowe?** Dwie logicznie odseparowane strefy Edge i Cloud oraz usługi SaaS CI.
