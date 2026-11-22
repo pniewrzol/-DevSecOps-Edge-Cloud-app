@@ -4,7 +4,7 @@
 
 Prowadzący zaakceptował pięcioosobowy skład. Michał odpowiada za CI/CD, a Kamil za środowisko wdrożeniowe i synchronizację.
 
-## Macierz RACI
+## Plan odpowiedzialności (RACI)
 
 R = realizuje, A = odpowiada za wynik, C = konsultowany, I = informowany. W każdym wierszu jest jedna osoba A. Osoby Michał i Kamil współpracują przy Cloud / DevOps, z wyraźnym właścicielem danego zadania.
 
@@ -27,6 +27,13 @@ R = realizuje, A = odpowiada za wynik, C = konsultowany, I = informowany. W każ
 - Materiały najlepiej udostępniać 48 godzin przed kolejnymi zajęciami.
 - Bez sekretów i danych rzeczywistych w kodzie, logach i zrzutach.
 
-## Dokumentowanie wkładu
+## Wykonane prace M1 i M2
 
-Każdy członek zespołu przypisuje do swoich zadań link do issue, PR, commita lub dokumentu, który opracował.
+Materiały M1 i M2 udostępnione w repozytorium opracował Patryk. Tabela obejmuje wykonane prace; plan odpowiedzialności jest opisany w macierzy powyżej.
+
+| Etap | Osoba | Wykonana praca | Dowód |
+|---|---|---|---|
+| M1 | Patryk | Karta projektu, podział ról, plan sprintu i przygotowanie repozytorium | [Dokumentacja M1](01-karta-projektu.md), [historia repozytorium](https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app/commits/main/) |
+| M2 | Patryk | Dokumentacja architektury, DFD, STRIDE i backlogu, kod i testy demonstratora, konfiguracja CI | [Przegląd M2](../M2/01-przeglad-M2.md), [przebieg CI #8](https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app/actions/runs/45068382402) |
+
+Jeżeli ktoś wykonał pracę poza repozytorium, można dopisać osobny wiersz z etapem, nazwiskiem, konkretną czynnością i dowodem, np. notatką ze spotkania, recenzją projektu lub wynikiem testu.

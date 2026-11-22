@@ -46,7 +46,7 @@ docker compose -f compose.poc.yaml down
 ## Dokumentacja etapów
 
 - [M1 – karta projektu](docs/M1/01-karta-projektu.md) · [role](docs/M1/02-role-i-komunikacja.md) · [sprint](docs/M1/03-plan-pierwszego-sprintu.md) · [checklista](docs/M1/04-checklista-M1.md)
-- [M2 – architektura](docs/M2/02-architektura.md) · [DFD](docs/M2/03-przeplyw-danych.md) · [STRIDE](docs/M2/04-model-zagrozen-STRIDE.md) · [ryzyka](docs/M2/05-rejestr-ryzyk.md) · [backlog](docs/M2/06-backlog.md)
+- [M2 – przegląd](docs/M2/01-przeglad-M2.md) · [architektura](docs/M2/02-architektura.md) · [DFD](docs/M2/03-przeplyw-danych.md) · [STRIDE](docs/M2/04-model-zagrozen-STRIDE.md) · [ryzyka](docs/M2/05-rejestr-ryzyk.md) · [backlog](docs/M2/06-backlog.md)
 - [ADR](docs/M2/07-decyzje-ADR.md) · [PoC/dowody](docs/M2/08-PoC-i-dowody.md) · [AI/ML](docs/M2/10-plan-AI-ML.md) · [wymagania](docs/M2/11-macierz-wymagan.md) · [scenariusz M2](docs/M2/12-prezentacja-M2.md)
 - [Checklista M2](docs/M2/09-checklista-odbioru.md) · [Raport postępu przed M2](docs/M2/13-raport-postepu.md)
 
