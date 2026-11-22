@@ -1,0 +1,71 @@
+name: CI security PoC
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  test-scan-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Tests
+        run: |
+          python -m pip install -r requirements-dev.txt
+          pytest -q
+      - name: Semgrep SAST (blocking)
+        run: |
+          python -m pip install semgrep==1.123.0
+          semgrep scan --config p/python --error app
+      - name: Install Trivy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget
+          wget -qO /tmp/trivy.deb https://github.com/aquasecurity/trivy/releases/download/v0.61.1/trivy_0.61.1_Linux-64bit.deb
+          sudo dpkg -i /tmp/trivy.deb
+      - name: SCA - dependency vulnerability gate
+        run: trivy fs --scanners vuln --severity CRITICAL --exit-code 1 --no-progress .
+      - name: Build image
+        run: docker build -t edge-demo:${{ github.sha }} .
+      - name: Container vulnerability gate
+        run: trivy image --severity CRITICAL --exit-code 1 --no-progress edge-demo:${{ github.sha }}
+      - name: Create SBOM (CycloneDX JSON)
+        run: trivy image --format cyclonedx --output sbom.cdx.json edge-demo:${{ github.sha }}
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: sbom.cdx.json
+          retention-days: 30
+      # Publikację realizuje osobny job z uprawnieniem packages:write.
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [test-scan-build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build approved source again
+        run: docker build -t edge-demo:${{ github.sha }} .
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish image to GHCR
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}/edge-demo:${GITHUB_SHA}"
+          docker tag "edge-demo:${GITHUB_SHA}" "$IMAGE"
+          docker push "$IMAGE"
+          echo "Published $IMAGE"
