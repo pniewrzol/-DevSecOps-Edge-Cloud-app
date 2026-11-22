@@ -2,7 +2,7 @@
 
 **Stan na 22.11.2026**
 
-Od M1 doprecyzowaliśmy przypadek użycia, podział odpowiedzialności i architekturę Edge–Cloud. Opracowaliśmy DFD, model zagrożeń STRIDE, rejestr ryzyk i backlog. Lokalny demonstrator rozpoznaje fikcyjne tablice na podstawie abonamentów z SQLite i zapisuje zdarzenia.
+Od M1 Patryk doprecyzował przypadek użycia, podział odpowiedzialności i architekturę Edge–Cloud. Przygotował DFD, model zagrożeń STRIDE, rejestr ryzyk i backlog. Lokalny demonstrator rozpoznaje fikcyjne tablice na podstawie abonamentów z SQLite i zapisuje zdarzenia.
 
 [Dowody M2](08-PoC-i-dowody.md) zawierają wyniki 10 testów, przykłady odpowiedzi API i odnośnik do zakończonego sukcesem przebiegu GitHub Actions. CI wykonało testy i skany, wygenerowało SBOM i opublikowało obraz w GHCR.
 
