@@ -1,0 +1,1478 @@
+--- a/.dockerignore
++++ b/.dockerignore
+@@ -6,3 +6,6 @@
+ *.pyc
+ sources
+ docs
++
++.local
++*.db
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -18,7 +18,7 @@
+       - name: Tests
+         run: |
+           python -m pip install -r requirements-dev.txt
+-          pytest -q
++          python -m pytest -q
+       - name: Semgrep SAST (blocking)
+         run: |
+           python -m pip install semgrep==1.123.0
+@@ -32,11 +32,11 @@
+       - name: SCA - dependency vulnerability gate
+         run: trivy fs --scanners vuln --severity CRITICAL --exit-code 1 --no-progress .
+       - name: Build image
+-        run: docker build -t edge-demo:${{ github.sha }} .
++        run: docker build -t smartgate-edge:${{ github.sha }} .
+       - name: Container vulnerability gate
+-        run: trivy image --severity CRITICAL --exit-code 1 --no-progress edge-demo:${{ github.sha }}
++        run: trivy image --severity CRITICAL --exit-code 1 --no-progress smartgate-edge:${{ github.sha }}
+       - name: Create SBOM (CycloneDX JSON)
+-        run: trivy image --format cyclonedx --output sbom.cdx.json edge-demo:${{ github.sha }}
++        run: trivy image --format cyclonedx --output sbom.cdx.json smartgate-edge:${{ github.sha }}
+       - name: Upload SBOM artifact
+         uses: actions/upload-artifact@v4
+         with:
+@@ -56,7 +56,7 @@
+         with:
+           persist-credentials: false
+       - name: Build approved source again
+-        run: docker build -t edge-demo:${{ github.sha }} .
++        run: docker build -t smartgate-edge:${{ github.sha }} .
+       - name: Log in to GHCR
+         uses: docker/login-action@v3
+         with:
+@@ -65,7 +65,7 @@
+           password: ${{ secrets.GITHUB_TOKEN }}
+       - name: Publish image to GHCR
+         run: |
+-          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}/edge-demo:${GITHUB_SHA}"
+-          docker tag "edge-demo:${GITHUB_SHA}" "$IMAGE"
++          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}/smartgate-edge:${GITHUB_SHA}"
++          docker tag "smartgate-edge:${GITHUB_SHA}" "$IMAGE"
+           docker push "$IMAGE"
+           echo "Published $IMAGE"
+--- a/.gitignore
++++ b/.gitignore
+@@ -9,3 +9,8 @@
+ *.key
+ secrets/
+ output/
++
++.local/
++*.db
++*.db-shm
++*.db-wal
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -1,9 +1,10 @@
+ FROM python:3.12-slim
+-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
++ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 SMARTGATE_DB_PATH=/data/smartgate.db
+ WORKDIR /app
+ COPY requirements.txt /app/requirements.txt
+ RUN pip install --no-cache-dir -r /app/requirements.txt \
+-    && useradd --system --uid 10001 --create-home appuser
++    && useradd --system --uid 10001 --create-home appuser \
++    && mkdir -p /data && chown 10001:10001 /data
+ COPY app /app/app
+ USER appuser
+ EXPOSE 8003
+--- a/README.md
++++ b/README.md
+@@ -1,100 +1,64 @@
+-# Projekt 04 – DevSecOps: bezpieczne wdrażanie aplikacji Edge–Cloud
++# SmartGate DevSecOps – bezpieczne wdrażanie aplikacji Edge–Cloud
+ 
+-**WSTI, Projekt Zespołowy: Bezpieczna Infrastruktura Hybrydowa z AI (2026/2027)**  
+-**Pakiet:** M1 + M2 (plan, dokumentacja, szkielet PoC).  
+-**Status:** dokumentacja M1/M2 przygotowana; lokalne testy FastAPI **2/2 PASS (22.11.2026)**, start Uvicorn na porcie **8003** potwierdzony logiem. Testy CI, skany, GHCR i wdrożenie **nie zostały zweryfikowane**.  
+-**Zespół (podział uzgodniony):** Patryk – lider / architekt; Michał i Kamil – Cloud / DevOps; Kajetan – Security Engineer; Bartek – AI / Monitoring. **Zgoda prowadzącego na pięcioosobowy skład nadal do potwierdzenia** (dokumenty źródłowe przewidują 4 osoby).
++**WSTI, temat 04: DevSecOps – bezpieczne wdrażanie aplikacji Edge–Cloud** · M1/M2 · 2026/2027.
+ 
+-## Zacznij tutaj
++> **Stan:** lokalny szkielet aplikacji SmartGate został zaimplementowany; nowy zestaw testów musi przejść w środowisku zespołu i GitHub Actions. Synchronizacja Cloud, monitorowanie AI/ML, automatyczny Edge deploy i rollback to **planowane etapy M3–M5**, a nie funkcje gotowe.
+ 
+-1. Uzupełnij [kartę M1](docs/M1/01-karta-projektu.md): nazwiska (jeśli wymagane), potwierdzenie zmiany liczebności.
+-2. Przejrzyj [role i ślad wkładu](docs/M1/02-role-i-komunikacja.md), [plan sprintu](docs/M1/03-plan-pierwszego-sprintu.md) i [checklistę M1](docs/M1/04-checklista-M1.md).
+-3. Zaprezentuj [architekturę](docs/M2/02-architektura.md), [DFD](docs/M2/03-przeplyw-danych.md), [STRIDE](docs/M2/04-model-zagrozen-STRIDE.md), [rejestr ryzyk](docs/M2/05-rejestr-ryzyk.md) oraz [backlog](docs/M2/06-backlog.md).
+-4. Przejdź przez [checklistę M2](docs/M2/09-checklista-odbioru.md) i [prezentację](docs/M2/12-prezentacja-M2.md).
+-5. Uruchom PoC według [instrukcji i szablonu dowodów](docs/M2/08-PoC-i-dowody.md). Uzupełnij prawdziwe logi i linki – nie wpisuj hipotetycznych sukcesów.
++## Cel
+ 
+-## Wymagania źródłowe
++SmartGate to **symulator lokalnego szlabanu parkingowego** (bez fizycznego sterowania). Przyjmuje fikcyjny numer rejestracyjny, weryfikuje uprawnienie w lokalnej bazie SQLite, zwraca `OPEN` lub `DENY`, a historię zdarzeń zapisuje lokalnie. Docelowo co minutę będzie przekazywał raport do Cloud i odbierał kontrolowane aktualizacje uprawnień. Przy braku Internetu Edge ma działać z lokalną kopią danych i buforować zdarzenia. Najważniejszym celem przedmiotu jest jednak **bezpieczny proces CI/CD** od kodu poprzez testy i skany aż do wdrożenia/rollbacku.
+ 
+-| Etap | Data | Zawartość |
+-|---|---|---|
+-| M1 | 16.10.2026 | Zespół, role, karta projektu, repozytorium |
+-| M2 | 27.11.2026 | Diagram, przepływ danych, model zagrożeń, backlog; dodatkowo PoC |
++**Zespół:** Patryk – lider / architekt; Michał i Kamil – Cloud/DevOps; Kajetan – Security; Bartek – AI/Monitoring. Pięć osób zgodne z informacją zespołu o dopuszczalnym maksimum; formalne potwierdzenie statusu z prowadzącym: **[DO UZUPEŁNIENIA]**.
+ 
+-Plan przedmiotu: `sources/WSTI_PZBI_plan_przedmiotu.pdf`.  
+-Katalog tematów, projekt 04: `sources/WSTI_PZBI_katalog_8_projektow.pdf`.
++## Uruchomienie lokalne (Linux)
+ 
+-## Zawartość repozytorium
+-
+-```text
+-.
+-├── README.md
+-├── docs/
+-│   ├── M1/
+-│   │   ├── 01-karta-projektu.md
+-│   │   ├── 02-role-i-komunikacja.md
+-│   │   ├── 03-plan-pierwszego-sprintu.md
+-│   │   └── 04-checklista-M1.md
+-│   └── M2/
+-│       ├── 02-architektura.md
+-│       ├── 03-przeplyw-danych.md
+-│       ├── 04-model-zagrozen-STRIDE.md
+-│       ├── 05-rejestr-ryzyk.md
+-│       ├── 06-backlog.md
+-│       ├── 07-decyzje-ADR.md
+-│       ├── 08-PoC-i-dowody.md
+-│       ├── 09-checklista-odbioru.md
+-│       ├── 10-plan-AI-ML.md
+-│       ├── 11-macierz-wymagan.md
+-│       └── 12-prezentacja-M2.md
+-├── .github/workflows/ci.yml
+-├── app/                  # Minimalna demonstracyjna FastAPI
+-├── tests/                # Szkielet testów
+-├── infrastructure/       # Plan infrastruktury do M3
+-├── monitoring/           # Plan telemetrii do M4
+-├── sources/              # PDF-y prowadzącego
+-├── Dockerfile
+-├── compose.poc.yaml
+-├── requirements.txt
+-└── requirements-dev.txt
++```bash
++chmod +x run-local.sh
++./run-local.sh          # środowisko, pytest, serwer na 127.0.0.1:8003
+ ```
+ 
+-## Propozycja techniczna (nie narzucona przez prowadzącego)
+-
+-- GitHub + Actions + GHCR; FastAPI i Docker/Compose.
+-- SAST/SCA: Semgrep, Trivy; skan sekretów Gitleaks; SBOM Syft.
+-- Edge: oddzielna VM; Cloud: oddzielna VM dla monitoringu/AI; możliwa symulacja na lokalnym Proxmox.
+-- Monitoring: Prometheus/Grafana, wyniki pipeline + metryki aplikacji, AI/ML z oceną jakości.
+-
+-## Uruchomienie lokalnego szkieletu
++- API: http://127.0.0.1:8003
++- Dokumentacja Swagger: http://127.0.0.1:8003/docs
++- Healthcheck: http://127.0.0.1:8003/health
++- Lokalny klucz demonstracyjny (TYLKO `127.0.0.1`): `local-demo-only-change-me`. Użyj własnego `SMARTGATE_API_KEY` poza tą demonstracją.
+ 
+ ```bash
+-python -m venv .venv
+-source .venv/bin/activate
+-python -m pip install -r requirements-dev.txt
+-pytest -q
+-uvicorn app.main:app --host 127.0.0.1 --port 8003
+-# w osobnym terminalu:
+-curl http://127.0.0.1:8003/health
++curl -s -X POST http://127.0.0.1:8003/api/v1/access/check \
++  -H 'Content-Type: application/json' \
++  -H 'X-API-Key: local-demo-only-change-me' \
++  -d '{"plate":"SK 12345"}'
++# przykład: {"plate":"SK12345","decision":"OPEN","reason":"active_permit","simulated":true}
+ ```
+ 
+-CI i GHCR wymagają konfiguracji repozytorium/permissions. Testy na żywym GitHub i Edge nie zostały wykonane w trakcie przygotowania pakietu.
++Przykładowe syntetyczne tablice: `SK 12345` – aktywna, `KR 98765` – nieaktywna, `SB 2026A` – wygasła. Brak prawdziwych danych osobowych. Logika decyzji jest deterministyczna; AI nie może otwierać szlabanu.
+ 
+-## Uczciwy status
++## Uruchomienie przez Docker Compose
+ 
+-- **Przygotowano:** dokumenty, diagramy Markdown/Mermaid, wstępne STRIDE/DFD/backlog, kod/szkielet PoC. **Potwierdzono:** lokalne 2 testy pytest PASS, start aplikacji 127.0.0.1:8003. Pozostają 3 ostrzeżenia deprecacyjne.
+-- **Do wykonania:** personalizacja 5-osobowego składu i akceptacja prowadzącego, faktyczne repo, wykonanie CI i zapis dowodów.
+-- **Etapy późniejsze:** automatyczny Edge deploy i rollback oraz rzeczywisty monitoring i AI/ML.
++```bash
++export SMARTGATE_API_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
++docker compose -f compose.poc.yaml up --build -d
++curl http://127.0.0.1:8003/health
++docker compose -f compose.poc.yaml down
++```
+ 
+-Testy wykonywać wyłącznie na własnej odizolowanej infrastrukturze i danych syntetycznych.
++**Nie uruchamiaj jednocześnie wersji lokalnej i kontenerowej na porcie 8003.** Lokalna SQLite jest w `.local/`, kontenerowa w trwałym woluminie `smartgate-data`. Wersja demo nie posiada produkcyjnego mechanizmu rotacji kluczy, centralnego uwierzytelnienia ani synchronizacji abonamentów.
+ 
+-## Uzgodnione role zespołu
++## Dokumentacja etapów
+ 
+-| Osoba | Rola |
++- [M1 – karta projektu](docs/M1/01-karta-projektu.md) · [role](docs/M1/02-role-i-komunikacja.md) · [sprint](docs/M1/03-plan-pierwszego-sprintu.md) · [checklista](docs/M1/04-checklista-M1.md)
++- [M2 – architektura](docs/M2/02-architektura.md) · [DFD](docs/M2/03-przeplyw-danych.md) · [STRIDE](docs/M2/04-model-zagrozen-STRIDE.md) · [ryzyka](docs/M2/05-rejestr-ryzyk.md) · [backlog](docs/M2/06-backlog.md)
++- [ADR](docs/M2/07-decyzje-ADR.md) · [PoC/dowody](docs/M2/08-PoC-i-dowody.md) · [AI/ML](docs/M2/10-plan-AI-ML.md) · [wymagania](docs/M2/11-macierz-wymagan.md) · [scenariusz M2](docs/M2/12-prezentacja-M2.md)
++- [Historyczne testy poprzedniego szkieletu](docs/M2/13-testy-lokalne-2026-11-22.md) · [Migracja i audyt](docs/M2/14-audyt-migracji-smartgate.md)
++
++## Status weryfikacji
++
++| Obszar | Stan |
+ |---|---|
+-| Patryk | Lider / architekt |
+-| Michał | Cloud / DevOps (CI/CD i release) |
+-| Kamil | Cloud / DevOps (infrastruktura i deployment) |
+-| Kajetan | Security Engineer |
+-| Bartek | AI / Monitoring |
++| Lokalny szkielet FastAPI (poprzednia wersja) | 2/2 testów PASS (log 22.11.2026), port 8003 |
++| Nowa logika SmartGate | Kod i testy przygotowane; wynik w CI do potwierdzenia |
++| GitHub Actions | Ostatni sprawdzony run `0c52d7d` nieudany na kroku Tests, dalsze kroki pominięte |
++| SAST/SCA/SBOM/GHCR | Definicja pipeline; skuteczne wykonanie do udokumentowania |
++| Edge–Cloud sync i rollback | Planowane M3–M5 |
++| Monitoring i AI/ML | Planowane M4 |
+ 
+-Dowody testów lokalnych: [protokół M2](docs/M2/13-testy-lokalne-2026-11-22.md).
++Źródła wymagań: `sources/`. Testy demonstracyjne tylko na własnym izolowanym środowisku.
+--- a/app/main.py
++++ b/app/main.py
+@@ -1,13 +1,51 @@
+-from fastapi import FastAPI
++"""SmartGate DevSecOps: local parking access simulator, not real barrier control."""
++from contextlib import asynccontextmanager
++import os
++import secrets
++from fastapi import FastAPI, Header, HTTPException, Depends
++from pydantic import BaseModel, Field
++from app.parking import initialize, check_plate, event_summary
+ 
+-app = FastAPI(title="Edge–Cloud DevSecOps PoC", version="0.1.0")
++
++@asynccontextmanager
++async def lifespan(_app: FastAPI):
++    initialize()
++    yield
++
++
++app = FastAPI(title="SmartGate DevSecOps (Edge demo)", version="0.2.0", lifespan=lifespan)
++
++
++class AccessRequest(BaseModel):
++    plate: str = Field(min_length=4, max_length=20, description="Fictional plate: e.g. SK 12345")
++
++
++def require_api_key(x_api_key: str | None = Header(default=None)) -> None:
++    configured = os.environ.get("SMARTGATE_API_KEY", "")
++    if not configured:
++        raise HTTPException(status_code=503, detail="API key not configured")
++    if x_api_key is None or not secrets.compare_digest(x_api_key, configured):
++        raise HTTPException(status_code=401, detail="Unauthorized")
+ 
+ 
+ @app.get("/health")
+ def health():
+-    return {"status": "ok", "service": "edge-demo"}
++    return {"status": "ok", "service": "smartgate-edge-demo"}
+ 
+ 
+ @app.get("/")
+ def root():
+-    return {"message": "Edge–Cloud DevSecOps PoC", "status": "prototype"}
++    return {"message": "SmartGate DevSecOps Edge demonstrator", "status": "prototype"}
++
++
++@app.post("/api/v1/access/check", dependencies=[Depends(require_api_key)])
++def check_access(request: AccessRequest):
++    try:
++        return check_plate(request.plate)
++    except ValueError as exc:
++        raise HTTPException(status_code=422, detail=str(exc)) from exc
++
++
++@app.get("/api/v1/events/summary", dependencies=[Depends(require_api_key)])
++def events_summary():
++    return event_summary()
+--- /dev/null
++++ b/app/parking.py
+@@ -0,0 +1,64 @@
++"""Offline-first demonstrator. Only fictional plates; no physical barrier actuator."""
++from datetime import date, datetime, timezone
++from pathlib import Path
++import os
++import re
++import sqlite3
++
++PLATE_PATTERN = re.compile(r"^[A-Z0-9]{4,12}$")
++
++
++def db_path() -> Path:
++    return Path(os.environ.get("SMARTGATE_DB_PATH", ".local/smartgate.db"))
++
++
++def connection():
++    path = db_path()
++    path.parent.mkdir(parents=True, exist_ok=True)
++    conn = sqlite3.connect(path, timeout=5)
++    conn.row_factory = sqlite3.Row
++    return conn
++
++
++def initialize() -> None:
++    """Demo seed is idempotent; license plates are intentionally fictional."""
++    with connection() as db:
++        db.execute("""CREATE TABLE IF NOT EXISTS permits (
++            plate TEXT PRIMARY KEY, valid_until TEXT NOT NULL, active INTEGER NOT NULL)""")
++        db.execute("""CREATE TABLE IF NOT EXISTS access_events (
++            id INTEGER PRIMARY KEY AUTOINCREMENT, plate TEXT NOT NULL,
++            decision TEXT NOT NULL, reason TEXT NOT NULL,
++            occurred_at TEXT NOT NULL, synced INTEGER NOT NULL DEFAULT 0)""")
++        db.executemany("INSERT OR IGNORE INTO permits VALUES (?, ?, ?)", [
++            ("SK12345", "2099-12-31", 1),
++            ("KR98765", "2099-12-31", 0),
++            ("SB2026A", "2020-01-01", 1),
++        ])
++
++
++def check_plate(plate: str):
++    normalized = re.sub(r"[ -]", "", plate.strip().upper())
++    if not PLATE_PATTERN.fullmatch(normalized):
++        raise ValueError("Invalid fictional plate format: 4–12 alphanumeric characters")
++    with connection() as db:
++        row = db.execute("SELECT active, valid_until FROM permits WHERE plate = ?", (normalized,)).fetchone()
++        if row is None:
++            decision, reason = "DENY", "not_registered"
++        elif not row["active"]:
++            decision, reason = "DENY", "inactive"
++        elif row["valid_until"] < date.today().isoformat():
++            decision, reason = "DENY", "expired"
++        else:
++            decision, reason = "OPEN", "active_permit"
++        db.execute("INSERT INTO access_events (plate,decision,reason,occurred_at) VALUES (?,?,?,?)",
++                   (normalized, decision, reason, datetime.now(timezone.utc).isoformat()))
++    return {"plate": normalized, "decision": decision, "reason": reason, "simulated": True}
++
++
++def event_summary():
++    """Only aggregate events are exposed: no plate data in the report."""
++    with connection() as db:
++        rows = db.execute("SELECT decision, count(*) AS total FROM access_events GROUP BY decision").fetchall()
++        queued = db.execute("SELECT count(*) FROM access_events WHERE synced = 0").fetchone()[0]
++    return {"counts": {row["decision"]: row["total"] for row in rows},
++            "pending_sync": queued, "cloud_sync_implemented": False}
+--- a/compose.poc.yaml
++++ b/compose.poc.yaml
+@@ -1,8 +1,13 @@
+ services:
+-  edge-demo:
++  smartgate-edge:
+     build: .
++    environment:
++      SMARTGATE_DB_PATH: /data/smartgate.db
++      SMARTGATE_API_KEY: ${SMARTGATE_API_KEY:?Set SMARTGATE_API_KEY in environment; no secrets in git}
+     ports:
+       - "127.0.0.1:8003:8003"
++    volumes:
++      - smartgate-data:/data
+     read_only: true
+     tmpfs:
+       - /tmp
+@@ -11,3 +16,5 @@
+     cap_drop:
+       - ALL
+     restart: unless-stopped
++volumes:
++  smartgate-data:
+--- a/docs/M1/01-karta-projektu.md
++++ b/docs/M1/01-karta-projektu.md
+@@ -1,80 +1,70 @@
+-# M1 – Karta projektu (temat nr 04)
++# M1 – Karta projektu: SmartGate DevSecOps
+ 
+-**Status:** wersja robocza do zatwierdzenia przez zespół i prowadzącego.  
+-**Przedmiot:** Projekt Zespołowy: Bezpieczna Infrastruktura Hybrydowa z AI (WSTI, 2026/2027).  
+-**Spotkanie M1:** 16.10.2026, 19:15–20:45.  
+-**Temat:** 04. DevSecOps: bezpieczne wdrażanie aplikacji Edge–Cloud.  
+-**Nazwa zespołu:** [UZUPEŁNIĆ].  
+-**Repozytorium GitHub:** https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app.
++**Przedmiot:** Projekt Zespołowy: Bezpieczna Infrastruktura Hybrydowa z AI, WSTI 2026/2027.
++**Temat katalogowy:** nr 04 – DevSecOps: bezpieczne wdrażanie aplikacji Edge–Cloud.
++**Nazwa własna:** SmartGate DevSecOps.
++**Zespół:** [NAZWA DO UZGODNIENIA].
++**Repo:** https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app
++**Liczebność:** 5 (według zespołu dopuszczalne maksimum; zatwierdzenie przez prowadzącego [POTWIERDZIĆ]).
+ 
+-> **Uwaga organizacyjna:** dokumenty przedmiotu opisują zespoły **czteroosobowe**, natomiast projekt ten zakłada **5 osób na prośbę zespołu**. Zmianę liczebności należy zatwierdzić z prowadzącym. Nie wpisywać, że zgodę już uzyskano.
++## Role i odpowiedzialności
+ 
+-## Skład pięcioosobowego zespołu
++| Osoba | Rola | Odpowiedzialność |
++|---|---|---|
++| Patryk | Lider / architekt | architektura, backlog, DFD, decyzje ADR, integracja i przeglądy |
++| Michał | Cloud / DevOps | CI/CD, GitHub Actions, skanowanie, artefakty GHCR |
++| Kamil | Cloud / DevOps | Docker, Edge/Cloud VM, wdrożenia, rollback, synchronizacja |
++| Kajetan | Security Engineer | STRIDE, rejestr ryzyk, security gates, uprawnienia i testy bezpieczeństwa |
++| Bartek | AI / Monitoring | zbieranie telemetrii, alerty, dashboard, eksperyment ML i ewaluacja |
+ 
+-| Nr | Imię | Rola | Zakres odpowiedzialności | Status |
+-|---|---|---|---|---|
+-| 1 | Patryk | Lider / architekt | Karta projektu, diagramy, backlog, koordynacja, integracja i przeglądy | Uzgodnione w zespole |
+-| 2 | Michał | Cloud / DevOps | GitHub Actions, pipeline CI/CD, publikacja artefaktów, konfiguracja Cloud/Edge i wdrożenia (wspólnie z Kamilem) | Uzgodnione w zespole |
+-| 3 | Kamil | Cloud / DevOps | Docker, GHCR, środowiska Edge/Cloud, automatyzacja wdrożeń i rollback (wspólnie z Michałem) | Uzgodnione w zespole |
+-| 4 | Kajetan | Security Engineer | STRIDE, rejestr ryzyk, zabezpieczenia, SAST/SCA, kontrola uprawnień i testy bezpieczeństwa | Uzgodnione w zespole |
+-| 5 | Bartek | AI / Monitoring | Metryki z wielu źródeł, dashboard, alerty, model ML i metryki jego jakości | Uzgodnione w zespole |
++## Problem
+ 
+-Prowadzący proponuje cztery role. W pięcioosobowym zespole rolę **Cloud / DevOps** współdzielą **Michał i Kamil**, zachowując cztery obszary odpowiedzialności. Rozdział konkretnych zadań między nimi ustalono w backlogu; formalna zgoda prowadzącego na pięć osób nadal wymaga potwierdzenia.
++Lokalna kontrola dostępu parkingowego musi podejmować decyzje także przy awarii Internetu. Jednocześnie aktualizacje oprogramowania Edge nie powinny wprowadzać podatności ani przerywać dostępności usługi. Niezabezpieczony proces dystrybucji mógłby spowodować błędne decyzje lub zmianę uprawnień.
+ 
+-## Problem biznesowy i cel
++## Cel i odbiorca
+ 
+-Ręczne dostarczanie aplikacji na węzły brzegowe rodzi ryzyko wdrożenia obrazu zawierającego podatności, niespójności wersji i długiego przywracania usługi. Celem jest powtarzalny i kontrolowany proces od commitu do wdrożenia kontenera w symulowanym Edge–Cloud z kontrolami bezpieczeństwa, audytem i rollbackiem.
++Zaprojektować oraz udokumentować **bezpieczny pipeline DevSecOps** dostarczający kontenerową aplikację SmartGate do symulowanego Edge, z centralnym Cloud monitoringowym, skanowaniem SAST/SCA/OCI, SBOM, kontrolą publikacji, rollbackiem, audytem i mierzalnym komponentem AI/ML. Odbiorcą jest administrator sieci parkingów/oddziałów (scenariusz laboratoryjny).
+ 
+-**Odbiorca:** zespół programistów i administratorów rozproszonych wdrożeń aplikacji (scenariusz laboratoryjny).  
+-**Środowisko:** lokalna wirtualizacja (propozycja: dwie VM Debian na Proxmox), GitHub Actions i GHCR; brak obowiązku komercyjnej chmury.
++## MVP aplikacji SmartGate
+ 
+-## Zakres minimalnego działającego prototypu (MVP)
++1. Fikcyjna tablica z pliku/żądania HTTP → normalizacja i walidacja.
++2. Lokalna baza SQLite abonamentów → deterministyczne `OPEN`/`DENY` (bez fizycznego sterowania).
++3. Zdarzenia w lokalnej kolejce i docelowy raport do Cloud co minutę (z obsługą ponowień).
++4. Praca offline oraz kontrolowana aktualizacja uprawnień po odzyskaniu łączności.
++5. Oddzielne strefy Edge/Cloud, uwierzytelnione API, ochrona transmisji i logi bez sekretów.
+ 
+-1. Automatyczny build, testy i wdrożenie kontenerowej aplikacji.
+-2. SAST/SCA, skan obrazu, blokada krytycznych podatności.
+-3. SBOM **lub** podpis/manifest artefaktu – plan: SBOM i digest, podpis Cosign jako uzupełnienie.
+-4. Powtarzalny rollback, ślady audytowe, kontrolowana nieudana kompilacja lub skan.
+-5. Brak sekretów w repo, minimalne uprawnienia pipeline, izolacja runnera.
+-6. Logicznie oddzielone Edge i Cloud, ochrona transmisji, uwierzytelnianie i autoryzacja.
+-7. Centralna telemetria z więcej niż jednego źródła, alarm/incydent i **mierzalny** komponent AI/ML.
++## MVP DevSecOps (nadrzędny cel tematu nr 04)
+ 
+-**Poza MVP:** Kubernetes, HA, komercyjna chmura, duży zakres IaC, autonomiczne reakcje ML.
++Automatyczny build, testy, SAST/SCA/skan obrazu, blokada CRITICAL, SBOM lub podpis/manifest, bezpieczne publikowanie GHCR, wdrożenie do Edge, healthcheck, rollback, ślady audytowe. Minimalne uprawnienia i izolacja runnerów. Monitoring z dwóch źródeł oraz AI/ML porównane z baseline.
+ 
+-## Przyjęte do konsultacji technologie
++## Architektura i technologie (propozycja)
+ 
+-GitHub, GitHub Actions, GHCR, Docker/Compose, FastAPI, pytest, Semgrep, Trivy, Gitleaks, Syft, Prometheus, Grafana, Python/scikit-learn; szczegóły i zagrożenia: [architektura](../M2/02-architektura.md) i [ADR](../M2/07-decyzje-ADR.md). Te wybory są **propozycją**, nie wymogiem WSTI.
+-
+-## Trzy najważniejsze ryzyka
+-
+-| Ryzyko | Wstępna redukcja |
+-|---|---|
+-| Ujawnienie tokenu lub sekretu CI | Least privilege, brak sekretów w repo i niezaufanych PR, skanowanie sekretów |
+-| Publikacja i wdrożenie podatnego/zmodyfikowanego obrazu | SAST/SCA, Trivy, kontrola digestu i pochodzenia, bramka blokująca |
+-| Utrata dostępności Edge po aktualizacji | Healthcheck, last-known-good release, rollback, log audytowy |
+-
+-Pełna analiza: [rejestr zagrożeń](../M2/04-model-zagrozen-STRIDE.md) i [rejestr ryzyk](../M2/05-rejestr-ryzyk.md).
+-
+-## Plan źródeł danych i uproszczony przepływ
++FastAPI + Python, SQLite (Edge), GitHub Actions, Docker/Compose, GHCR, Semgrep, Trivy, SBOM, Prometheus, Grafana i scikit-learn. Edge jako VM i Cloud jako druga odrębna VM na Proxmox – dopuszczona symulacja laboratoryjna.
+ 
+ ```mermaid
+ flowchart LR
+-  U[Programista] --> R[GitHub Repo]
+-  R --> CI[CI: testy i skany]
+-  CI --> REG[GHCR: obraz + SBOM]
+-  REG --> E[Edge: aplikacja]
+-  E --> M[Cloud: monitoring]
+-  CI --> M
+-  M --> ML[AI/ML: klasyfikacja alertów]
++  DRIVER[Symulowany pojazd] --> EDGE[Edge: SmartGate + lokalne SQLite]
++  EDGE -->|Raporty, ponowienia| CLOUD[Cloud: raporty i monitoring]
++  CLOUD -->|Wersjonowane abonamenty| EDGE
++  DEV[GitHub Repo] --> CI[Actions: test + scan + SBOM]
++  CI --> REG[GHCR]
++  REG -->|Kontrolowany deploy| EDGE
++  CI -->|Metryki pipeline| CLOUD
++  CLOUD --> ML[AI/ML: alerty]
+ ```
+ 
+-Źródła danych: (1) wyniki testów/skanów i statusy CI, (2) metryki/logi aplikacji Edge. Wyłącznie dane syntetyczne/testowe.
++## Trzy ryzyka kluczowe
+ 
+-## Kryteria ukończenia M1
++1. Nieautoryzowana modyfikacja lokalnych abonamentów i błędne `OPEN` → autoryzacja, integralność bazy, przegląd zmian i log zdarzeń.
++2. Wyciek sekretów/podatny obraz w pipeline → least privilege, skany, security gate, SBOM/digest.
++3. Nieudana aktualizacja lub przerwa łączności → healthcheck, rollback, lokalne decyzje oraz trwała kolejka raportów.
+ 
+-- [ ] Zatwierdzone 5 osób przez prowadzącego (odstępstwo od zasad 4-osobowych).
+-- [ ] Nazwa zespołu uzupełniona; **imiona i role uzgodnione (5 osób)**.
+-- [x] Repozytorium utworzone i adres podany.
+-- [ ] Problem, cel, odbiorca, MVP, technologie, ryzyka i przepływ omówione.
+-- [ ] Każdy członek ma ustalony wkład i pierwsze zadanie w backlogu.
++## Status / kryteria M1
+ 
+-**Stan M1 nie został zweryfikowany; nie oznaczać jako zaliczony bez potwierdzenia.**
++- [x] Temat 04, nazwa SmartGate DevSecOps, role pięciu osób i adres repo ustalone.
++- [x] Problem, cel, zakres MVP i diagram wstępny opisane.
++- [ ] Pełne nazwiska/nazwa zespołu, jeśli wymagane.
++- [ ] Potwierdzenie przez prowadzącego dopuszczenia pięciu osób zapisane jako dowód.
++- [ ] Potwierdzenie akceptacji karty M1 przez zespół/prowadzącego.
++
++Żaden nieuzyskany podpis lub zgoda nie jest tutaj deklarowany.
+--- a/docs/M1/02-role-i-komunikacja.md
++++ b/docs/M1/02-role-i-komunikacja.md
+@@ -1,8 +1,8 @@
+ # M1 – Role, komunikacja i ślad wkładu (5 osób)
+ 
+-**Uzgodniony podział zespołu (22.11.2026):** Patryk – lider / architekt; Michał i Kamil – Cloud / DevOps; Kajetan – Security Engineer; Bartek – AI / Monitoring.
++**Uzgodniony podział zespołu (22.11.2026) – projekt SmartGate DevSecOps:** Patryk – lider / architekt; Michał i Kamil – Cloud / DevOps; Kajetan – Security Engineer; Bartek – AI / Monitoring.
+ 
+-> Materiały WSTI przewidują 4 osoby. Skład pięcioosobowy wymaga potwierdzenia przez prowadzącego. Współdzielenie roli Cloud / DevOps nie oznacza dodatkowej piątej roli.
++> Materiały WSTI planują cztery osoby; zespół otrzymał informację o dopuszczalnym maksimum pięciu osób. Formalną zgodę/status warto odnotować. Współdzielenie roli Cloud / DevOps nie oznacza dodatkowej piątej roli.
+ 
+ ## Macierz RACI
+ 
+@@ -12,11 +12,11 @@
+ |---|---|---|---|---|---|
+ | Karta projektu, backlog i sprint review | A/R | C | C | C | C |
+ | Architektura logiczna i DFD | A/R | C | C | C | C |
+-| CI/CD, GitHub Actions, security gates | C | A/R | R | R | I |
++| CI/CD SmartGate, GitHub Actions, security gates | C | A/R | R | R | I |
+ | Obraz OCI, GHCR, SBOM i Docker | C | R | A/R | C | I |
+-| VM Edge/Cloud, sieć, deployment i rollback | C | R | A/R | C | I |
++| VM Edge/Cloud, lokalna baza, sieć, deployment i rollback | C | R | A/R | C | I |
+ | Model zagrożeń STRIDE, IAM, ryzyka | C | C | C | A/R | C |
+-| Telemetria, dashboard i AI/ML | C | C | C | C | A/R |
++| Telemetria SmartGate/CI, dashboard i AI/ML | C | C | C | C | A/R |
+ | Integracja końcowa i demonstracja | A/R | R | R | R | R |
+ 
+ ## Zasady współpracy
+--- a/docs/M1/03-plan-pierwszego-sprintu.md
++++ b/docs/M1/03-plan-pierwszego-sprintu.md
+@@ -1,28 +1,13 @@
+-# M1 – Plan pierwszego sprintu i kamienie milowe
++# M1 – Plan pierwszego sprintu SmartGate
+ 
+-**Data M1:** 16.10.2026. **Przedstawienie M2:** 27.11.2026. Podział ról uzgodniono w pięcioosobowym zespole; zgodę prowadzącego na liczebność należy potwierdzić.
++**Cel:** opracować dokumentację M2 systemu SmartGate w zakresie tematu nr 04 DevSecOps Edge–Cloud, bez obietnicy pełnej implementacji do listopada.
+ 
+-| Zadanie | Właściciel (rola) | Rezultat | Status |
+-|---|---|---|---|
+-| Potwierdzić zgodę na 5 osób | Patryk | Potwierdzenie prowadzącego | TODO |
+-| Utworzyć repo, board, ochronę main | Michał i Patryk | URL, ustawienia i pierwszy commit | W CZĘŚCI: repo utworzone, ustawienia do weryfikacji |
+-| Karta projektu + uzgodnione role | Patryk | `docs/M1/01-karta-projektu.md` | DRAFT |
+-| Diagram architektury i DFD | Patryk i Kamil | Diagramy Mermaid i strefy zaufania | DRAFT |
+-| STRIDE i 3 najważniejsze ryzyka | Kajetan | Model i rejestr ryzyka | DRAFT |
+-| Test kluczowego etapu pipeline | Michał i Kamil | Log Actions, test, skan, status | TODO |
+-| Dane i baseline AI/ML | Bartek | Schemat zdarzeń, metryka, plan ewaluacji | DRAFT |
+-| Backlog M2–M7 i review | Patryk + cały zespół | Właściciele, kryteria, daty | DRAFT |
++| Odpowiedzialny | Zadanie | Kryterium |
++|---|---|---|
++| Patryk | karta projektu, architektura C4, DFD, backlog | spójne diagramy i linki |
++| Michał | PoC GitHub Actions test/build/scan | prawdziwy run i raport lub jawna blokada |
++| Kamil | Docker, Compose, opcje Edge i SQLite | prototyp lokalny i plan wdrożenia |
++| Kajetan | STRIDE i rejestr ryzyk | zagrożenia aplikacji parkingowej i supply-chain |
++| Bartek | źródła danych i propozycja ML/baseline | plan walidacji i metryk M4 |
+ 
+-**Kryterium sprintu:** dokumenty M1 i M2 dostępne w repo, spójny zakres MVP, zarejestrowane ryzyka oraz dowód PoC lub uczciwie opisana blokada. Pełne wymagania: `docs/M2/09-checklista-odbioru.md`.
+-
+-## Terminy zajęć
+-
+-| Kamień | Spotkanie | Odbiór |
+-|---|---|---|
+-| M1 | 16.10.2026 | Skład, role, karta, repozytorium |
+-| M2 | 27.11.2026 | Diagram, DFD, zagrożenia, backlog |
+-| M3 | 11.12.2026 | Środowisko, pierwszy end-to-end |
+-| M4 | 12.12.2026 | Analityka, alert, metryki AI/ML |
+-| M5 | 15.01.2027 | Plan i dowody testów, usterki |
+-| M6 | 16.01.2027 | Odbiór prototypu, audyt |
+-| M7 | 31.01.2027 | Repo finalne, dokumentacja, prezentacja |
++Zależności: zdefiniować kontrakt API i architekturę przed implementacją synchronizacji. GitHub Issues + PR; przegląd przez inną osobę; szczegółowy udział każdego dokumentować linkiem do commitu. Spotkanie M2: **27.11.2026**; zalecane materiały do **25.11**.
+--- a/docs/M1/04-checklista-M1.md
++++ b/docs/M1/04-checklista-M1.md
+@@ -1,13 +1,13 @@
+-# M1 – Checklista odbioru
++# M1 – Checklista SmartGate DevSecOps
+ 
+-- [ ] Numer 04 i tytuł tematu poprawne.
+-- [ ] Potwierdzono dopuszczenie **5 osób** (plan WSTI mówi o 4).
+-- [x] Wpisano 5 imion i przypisano role oraz zakresy prac; nazwiska (jeśli wymagane) do uzupełnienia.
+-- [ ] Nazwa zespołu do uzupełnienia; adres repozytorium wpisany: https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app.
+-- [ ] Karta zawiera problem, cel, odbiorcę, zakres MVP i technologie.
+-- [ ] Podano trzy główne ryzyka oraz wstępne zabezpieczenia.
+-- [ ] Ujęto przynajmniej uproszczony przepływ danych.
+-- [ ] Ustalono sprint, komunikację i zadania na M2.
+-- [ ] Zarejestrowano źródła wymagań.
++- [x] Wybrano temat katalogowy 04 i nazwę własną SmartGate DevSecOps.
++- [x] Zapisano pięć imion i cztery role (Michał/Kamil współdzielą Cloud/DevOps).
++- [x] Utworzono repozytorium GitHub i wskazano URL.
++- [x] Opisano problem, odbiorcę, cel, MVP, propozycję technologii.
++- [x] Przedstawiono schemat lokalny Edge–Cloud i wstępne trzy ryzyka.
++- [ ] Potwierdzono/odnotowano zgodę prowadzącego na skład 5 osób, jeżeli jest wymagana.
++- [ ] Uzupełniono nazwę zespołu / nazwiska, jeśli wymagane.
++- [ ] Zespół zaakceptował aktualną kartę projektu i zapisał dowód przeglądu.
++- [ ] Powiązano GitHub Issues z właścicielami i rozpoczętym sprintem.
+ 
+-**Nie odznaczać bez potwierdzenia faktów.**
++"x" oznacza obecność elementu w artefakcie lub fakt znany z rozmowy, a nie formalne zaliczenie M1.
+--- a/docs/M2/02-architektura.md
++++ b/docs/M2/02-architektura.md
+@@ -1,73 +1,55 @@
+-# M2-02. Architektura logiczna
++# M2-02. Architektura logiczna SmartGate DevSecOps
+ 
+-**Status:** architektura proponowana, do zatwierdzenia przez zespół. Notacja zbliżona do C4 (kontenery i systemy). Deployment i monitoring przewidziane na M3–M4.
+-
+-## Diagram
++**Status:** architektura projektowana; Edge–Cloud, synchronizacja, monitoring, automatyczny deployment i rollback będą wdrażane po M2. Na M2 działa lokalna demonstracja API i SQLite (wyniki nowego CI wymagają sprawdzenia). Poziom: kontekst + kontenery w stylu C4.
+ 
+ ```mermaid
+ flowchart TB
+-  DEV[Programista] -->|F01 push / PR| REPO
+-  subgraph CI[TB-1: Repozytorium i strefa CI]
+-    REPO[GitHub Repository] --> ACTION[GitHub Actions: test + SAST + SCA]
+-    ACTION --> GATE{Polityka: brak CRITICAL?}
+-    GATE -->|NIE| DENY[Zatrzymaj, zapisz raport]
+-    GATE -->|TAK| BUILD[Build, scan obrazu, SBOM]
+-    BUILD --> REG[(GHCR: OCI + digest + SBOM)]
++  CAR["Symulowany pojazd / plik z fikcyjną tablicą"] --> API
++  subgraph EDGE["TB2 – Edge / VM parkingowa"]
++    API["SmartGate FastAPI: walidacja i decyzja OPEN/DENY"]
++    DB[("SQLite: lokalne abonamenty")]
++    OUT[("Kolejka zdarzeń offline")]
++    API --> DB
++    API --> OUT
+   end
+-  subgraph EDGE[TB-2: Edge – osobna VM]
+-    AGENT[Agent deployment / ograniczony SSH]
+-    APP[Docker Compose: FastAPI]
+-    CHECK[Healthcheck + rollback]
+-    AGENT --> APP --> CHECK
++  subgraph CLOUD["TB3 – Cloud / VM centrali"]
++    SYNC["Usługa aktualizacji uprawnień i odbioru raportów"]
++    MET["Prometheus/Grafana"]
++    ML["Detekcja anomalii AI/ML"]
++    SYNC --> MET --> ML
+   end
+-  subgraph CLOUD[TB-3: Cloud – symulowana osobna VM]
+-    COLLECT[Centralny kolektor metryk/logów]
+-    DASH[Grafana / status]
+-    AI[Klasyfikacja alertów ML]
+-    COLLECT --> DASH
+-    COLLECT --> AI
+-    AI -->|Alert| DASH
++  OUT -->|"Szyfrowane raporty z retry i idempotencją"| SYNC
++  SYNC -->|"Wersjonowana, uwierzytelniona lista uprawnień"| DB
++  API -.->|"Metryki w prywatnej sieci"| MET
++  subgraph CICD["TB1 – GitHub, CI i registry"]
++    GIT["GitHub Repo"] --> CI["Actions: pytest + Semgrep + Trivy"]
++    CI --> GATE{"Security Gate"}
++    GATE -->|PASS| REG[("GHCR + SBOM + digest")]
++    GATE -->|FAIL| STOP["Blokada i audyt"]
+   end
+-  ACTION -->|F06: deploy tylko z main| AGENT
+-  REG -->|F07: pull po digest + weryfikacja| AGENT
+-  APP -->|F09: metryki/logi kanałem prywatnym| COLLECT
+-  ACTION -->|F10: wyniki pipeline| COLLECT
++  REG -->|"Zaufany release: weryfikacja + healthcheck"| API
++  CI -.->|"Statusy/skany"| MET
+ ```
+ 
+-## Strefy i granice zaufania
++## Granice zaufania
+ 
+-| Strefa | Właściciel | Zaufanie / izolacja |
++| Granica | Przekroczenie | Kontrola |
+ |---|---|---|
+-| TB-0 – stacja programisty | programista | niezaufany kod wejściowy; uwierzytelnienie repozytorium |
+-| TB-1 – GitHub/CI/GHCR | dostawca SaaS i zespół | workflow PR bez sekretów, minimalne permissions, osobna bramka publikacji |
+-| TB-2 – Edge | operator labu | VM odizolowana od CI; ograniczone konto wdrożeniowe, brak publicznego Dockera |
+-| TB-3 – Cloud | operator labu | odrębna VM, odbiór danych poprzez zabezpieczony kanał, RBAC w Grafana |
++| TB0→TB2 | symulowana tablica/żądanie do Edge | walidacja, uwierzytelnienie klienta API, ograniczenie dostępu lokalnego |
++| TB1→TB2 | zatwierdzony obraz i dyspozycja deploy | minimalne uprawnienia, digest, autoryzowany kanał, healthcheck |
++| TB2→TB3 | raporty/metryki | HTTPS/VPN, identyfikator zdarzenia, retry, kontrola dostępu |
++| TB3→TB2 | aktualizacja abonamentów | podpis/wersja, walidacja, ochrona przed rollbackiem bazy |
+ 
+-## Komponenty
++## Komponenty i etap
+ 
+-| Komponent | Funkcja | Dane | Kontrole |
+-|---|---|---|---|
+-| GitHub | kod i PR | commity, workflow | branch protection, MFA |
+-| GitHub Actions | testy, skany, build | logi i wyniki skanów | hosted runner na PoC, `permissions` ograniczone, bez sekretów na PR |
+-| Semgrep, Trivy | SAST i SCA / skan OCI | raporty JSON/SARIF | blokada CRITICAL; jawna polityka wyjątków |
+-| GHCR | obrazy OCI | artefakty, SHA, SBOM | odczyt/zapis zgodnie z rolą, obrazy po digest |
+-| FastAPI | usługa Edge | /health, /metrics | bez roota, healthcheck |
+-| Agent wdrożeniowy | kontrolowana aktualizacja | manifest wersji | odseparowany klucz/poświadczenie, lista dozwolonych operacji |
+-| Prometheus/Grafana | telemetria | metryki, alerty | VPN/mTLS lub reverse proxy TLS + auth; ograniczone konta |
+-| ML | klasyfikacja alertów | wyniki skanów i historii deploymentów | walidacja danych, raport jakości |
++| Komponent | Rola | Status |
++|---|---|---|
++| FastAPI + SQLite Edge | lokalna decyzja, syntetyczne dane, lokalne zdarzenia | kod demonstracyjny przygotowany |
++| Kontener Docker | uruchomienie Edge bez roota | konfiguracja przygotowana, sprawdzić build |
++| GitHub Actions, Trivy/Semgrep, GHCR | security-gated CI/CD | workflow istnieje, ostatni run fail na Tests |
++| Cloud sync/reporting | raport co minutę, idempotencja, wersjonowane abonamenty | plan M3 |
++| Prometheus/Grafana | telemetria z Edge + CI | plan M4 |
++| AI/ML | alarmy bezpieczeństwa i anomalie | plan M4 |
++| Rollback/deploy agent | ostatni poprawny digest i audyt | plan M3–M5 |
+ 
+-## Decyzje otwarte
+-
+-- Mechanizm wdrożenia: preferowane połączenie SSH przez tunel VPN z ograniczonym użytkownikiem; do zweryfikowania na M3.
+-- Czy repozytorium będzie publiczne, czy prywatne: **[DECYZJA ZESPOŁU]**.
+-- Czy podpis Cosign wchodzi do MVP poza SBOM: opcjonalnie, nie wymaga katalog.
+-- Jak rozwiązać bezpieczny scrape Prometheus: rekomendacja pull przez prywatny kanał; diagram pokazuje logiczny przepływ telemetrii.
+-
+-## Przygotowanie środowisk (docelowo)
+-
+-| VM | Komponenty | Oddzielenie |
+-|---|---|---|
+-| edge-01 | Docker Engine + Compose + FastAPI | osobny system, konto deploy |
+-| cloud-01 | Prometheus + Grafana + analizator | osobny system i segment logiczny |
+-
+-Nie wystawiać portu Docker API do internetu. Bezpośredni dostęp administracyjny do Edge tylko z autoryzowanej sieci labowej.
++**Założenia:** tylko fikcyjne tablice; brak kamery ANPR i fizycznego szlabanu. Przy braku łączności baza Edge nadal obsługuje lokalne decyzje, raporty czekają w trwałej kolejce. Zasady wygasania nieodświeżanych abonamentów wymagają osobnego ADR.
+--- a/docs/M2/03-przeplyw-danych.md
++++ b/docs/M2/03-przeplyw-danych.md
+@@ -1,60 +1,43 @@
+-# M2-03. Diagram przepływu danych (DFD)
++# M2-03. DFD – przepływy danych SmartGate
+ 
+-**Notacja:** procesy P, magazyny D, podmioty zewnętrzne E. Wzajemnie izolowane strefy TB. Jest to model logiczny, a nie konfiguracja gotowej sieci.
++**Notacja:** E – encja zewnętrzna, P – proces, D – magazyn, TB – granica zaufania. Kierunki transportu są logiczne i nie oznaczają wdrożonych połączeń.
+ 
+ ```mermaid
+ flowchart LR
+- E1["E1 Programista"] -->|F01 kod / PR| P1
+- subgraph TB1["TB-1 GitHub i CI"]
+-   D1[(D1 Repozytorium)] -->|F02 kod i workflow| P1["P1 Pipeline testów/skanów"]
+-   P1 -->|F03| P2["P2 Build / SBOM / policy"]
+-   P2 -->|F04 raport| D2[(D2 Artefakty CI)]
+-   P2 -->|F05 obraz + digest| D3[(D3 GHCR)]
+- end
+- E1 --> D1
+- subgraph TB2["TB-2 Edge"]
+-   P3["P3 Kontrolowany deploy"] -->|F08 uruchomienie| P4["P4 FastAPI + healthcheck"]
+-   P4 -->|F12 stan| D4[(D4 Ostatnia dobra wersja)]
+-   D4 -->|F13 rollback| P3
+- end
+- subgraph TB3["TB-3 Cloud"]
+-   P5["P5 Zbieranie metryk i logów"] --> D5[(D5 Telemetria)]
+-   D5 --> P6["P6 Model AI/ML"]
+-   P6 -->|F11 alert| P7["P7 Dashboard"]
+- end
+- P2 -->|F06 dyspozycja deploy| P3
+- D3 -->|F07 pobranie + weryfikacja| P3
+- P4 -->|F09 metryki + logi| P5
+- D2 -->|F10 raporty CI| P5
++  E1["E1 Symulowany pojazd / plik"] -->|F01 fikcyjny numer| P1
++  subgraph TB2["TB2 Edge"]
++    P1["P1 Walidacja i autoryzacja klienta"] -->|F02 numer| P2["P2 Decyzja parkingowa"]
++    D1[("D1 SQLite – abonamenty")] -->|F03 uprawnienia| P2
++    P2 -->|F04 OPEN/DENY| E2["E2 Symulator szlabanu"]
++    P2 -->|F05 zdarzenie| D2[("D2 Offline event outbox")]
++    D2 -->|F06 kolejka do synchronizacji| P3["P3 Agent synchronizacji"]
++  end
++  subgraph TB3["TB3 Cloud"]
++    P4["P4 Odbiór raportów"] --> D3[("D3 Raporty i historia")]
++    P5["P5 Zarządzanie abonamentami"] -->|F08 wersjonowany snapshot| P3
++    D3 --> P6["P6 Monitoring i AI/ML"]
++  end
++  P3 -->|F07 raport HTTPS/VPN| P4
++  subgraph TB1["TB1 CI i Registry"]
++    E3["E3 Programista"] -->|F09 kod PR| P7["P7 CI: test + SAST/SCA + build"]
++    P7 -->|F10 zatwierdzony obraz + SBOM| D4[("D4 GHCR")]
++  end
++  D4 -->|F11 obraz do deploy| P8["P8 Agent wdrożeniowy Edge"]
++  P8 -->|F12 aktualizacja i healthcheck| P1
++  P7 -->|F13 wyniki i zdarzenia CI| P6
+ ```
+ 
+-## Rejestr przepływów
++| ID | Informacja i cel | Kontrola |
++|---|---|---|
++| F01 | Fikcyjna tablica do Edge | walidacja formatu, ograniczenie źródeł |
++| F02–F03 | tablica i lokalne abonamenty | autoryzowany dostęp, ochrona SQLite |
++| F04 | decyzja OPEN/DENY do symulatora | odseparowane sterowanie (bez sprzętu) |
++| F05–F06 | lokalne zdarzenia do trwałej kolejki | identyfikator i czas, brak utraty po restarcie |
++| F07 | zbuforowane raporty do Cloud | TLS/VPN, retry i idempotencja |
++| F08 | wersjonowana lista abonamentów do Edge | autoryzacja, integralność, kontrola wieku danych |
++| F09 | PR i kod źródłowy do CI | review, brak sekretów w PR |
++| F10 | obraz i SBOM do GHCR | skany, policy gate, digest |
++| F11–F12 | wdrożenie Edge i healthcheck | kanał uwierzytelniony, rollback |
++| F13 | wyniki pipeline do Cloud | bez sekretów, ograniczona telemetria |
+ 
+-| ID | Źródło → cel | Typ danych | Transport / wymaganie bezpieczeństwa |
+-|---|---|---|---|
+-| F01 | Programista → repo | kod, commit, PR | HTTPS/SSH, MFA, PR review |
+-| F02 | Repo → CI | workflow i kod | kontrola zmian, pinning akcji |
+-| F03 | Testy → build | status testów, skanów | bramka bezpieczeństwa; brak przejścia po błędzie |
+-| F04 | Build → artefakty CI | raport JSON, logi | ograniczony dostęp, retencja |
+-| F05 | CI → GHCR | obraz, digest, SBOM | uwierzytelniony push po przejściu skanów |
+-| F06 | CI → Edge | identyfikator wersji, dyspozycja | auth i least privilege; bez publicznego webhooku bez zabezpieczeń |
+-| F07 | GHCR → Edge | OCI po digest | TLS, weryfikacja integralności/podpisu jeśli używany |
+-| F08 | deploy → runtime | polecenie Docker Compose | konto techniczne z ograniczeniami |
+-| F09 | Edge → Cloud | /metrics, logi, healthcheck | logicznie Edge→Cloud; fizycznie pull lub forward przez VPN/TLS |
+-| F10 | CI → Cloud | raporty skanów, statusy deploy | auth, walidacja po stronie kolektora |
+-| F11 | ML → dashboard | klasa alertu, confidence | log audytowy, rozdzielone uprawnienia |
+-| F12 | healthcheck → stan | dobry digest, timestamp | chroniony plik/manifests |
+-| F13 | stan → deploy | ostatni dobry digest | jawna procedura rollback, audyt |
+-
+-## Przykłady danych syntetycznych
+-
+-- `build_id`, `commit_sha`, `status`, `duration_seconds`, `critical_findings`, `high_findings`, `test_failures`, `rollback_required`.
+-- Dane telemetrii: `service_up`, liczba żądań HTTP, błędy 5xx, czas uruchomienia kontenera.
+-- **Nie przekazywać** do modelu haseł, tokenów, prywatnych kluczy, payloadów zawierających dane osobowe.
+-
+-## Granice i najważniejsze kontrole
+-
+-1. TB-0 → TB-1: kod z PR jest niezaufany; uruchomienie build nie daje uprawnień do deploy.
+-2. TB-1 → TB-2: wdrożenie tylko zatwierdzonych artefaktów, przez kanał uwierzytelniony.
+-3. TB-2 → TB-3: ograniczony eksport metryk; oddzielne poświadczenia, TLS/VPN.
+-4. Przekazanie danych pipeline do AI: filtracja sekretów, walidacja formatu i uprawniony odbiorca.
++**Obecna implementacja:** F01–F05 w formie demonstracyjnego API i SQLite (F05 jako lokalny zapis zdarzeń); F06–F08 oraz F11–F13 to **planowane interfejsy**. DFD nie stwierdza gotowości usługi Cloud.
+--- a/docs/M2/04-model-zagrozen-STRIDE.md
++++ b/docs/M2/04-model-zagrozen-STRIDE.md
+@@ -1,39 +1,33 @@
+-# M2-04. Model zagrożeń STRIDE
++# M2-04. Model zagrożeń STRIDE – SmartGate DevSecOps
+ 
+-**Zakres analizy:** kod → CI → obraz OCI → Edge → monitoring/AI. **Metoda:** STRIDE na procesach, magazynach i przepływach DFD. Oceny wstępne i jakościowe; nie są wynikami pentestu.
++Analiza dotyczy zarówno aplikacji parkingowej, jak i łańcucha dostaw CI/CD. Oceny i kontrole są **planowane**; nie są wynikami testów penetracyjnych.
+ 
+-## Aktywa i cele bezpieczeństwa
++## Aktywa
+ 
+-- A1: integralność repozytorium i workflow; A2: poświadczenia CI/CD; A3: integralność obrazu OCI i SBOM; A4: dostępność aplikacji Edge; A5: wiarygodność śladów audytowych; A6: prywatność i integralność danych telemetrii.
++A1 integralność lokalnych uprawnień abonamentowych; A2 poprawność decyzji `OPEN/DENY`; A3 dostępność Edge offline; A4 prywatność danych parkingowych; A5 integralność zdarzeń i raportów; A6 bezpieczeństwo pipeline i podpisanych artefaktów; A7 sekrety API i kont technicznych.
+ 
+-## Katalog zagrożeń
++| ID | STRIDE | Scenariusz / granica | Skutek | Kontrola | Dowód/test |
++|---|---|---|---|---|---|
++| SG-01 | Spoofing | klient podszywa się pod zaufany odczyt tablicy | nieuprawnione żądania | API key demo; docelowo mTLS i identyfikacja urządzeń | 401 bez klucza |
++| SG-02 | Tampering | zmiana uprawnienia w lokalnej SQLite | nieautoryzowane OPEN | ACL hosta, ograniczenie edycji, integralność snapshotów | test modyfikacji offline |
++| SG-03 | Repudiation | usunięcie historii wjazdów | brak audytu | trwałe zdarzenia i centralna kopia | audyt/identyfikatory |
++| SG-04 | Information Disclosure | ujawnienie tablic / abonamentów | naruszenie prywatności | tylko fikcyjne dane, TLS, retencja, RBAC | test anonimizacji |
++| SG-05 | Denial of Service | nadmiar żądań parkingowych lub Cloud offline | spadek dostępności | rate limit, lokalna baza, kolejka | test offline i przeciążenia |
++| SG-06 | Elevation of Privilege | podniesienie praw API do edycji abonamentów | fałszywy dostęp | brak publicznego endpointu admin, RBAC w Cloud | odmowa nieuprawnionej zmiany |
++| SG-07 | Spoofing | fałszywy raport Edge w centrali | fałszywe statystyki | podpis/identyfikacja urządzenia, nonce/ID | odrzucenie obcego urządzenia |
++| SG-08 | Tampering | ponowienie lub zmiana raportu | zawyżenie liczby wjazdów | event UUID, idempotencja | powtórny raport liczony raz |
++| SG-09 | Tampering | cofnięcie wersji abonamentów | cofnięty zakaz wjazdu | wersja monotoniczna + termin ważności | odrzucenie starego snapshotu |
++| CI-01 | Spoofing | przejęte konto GitHub lub nieuprawniony PR | kod obcy w release | MFA, branch protection, review | test reguł PR |
++| CI-02 | Information Disclosure | sekret w repo lub logu Actions | przejęcie usługi | secrets manager, Gitleaks, brak sekretów w PR | test kontrolny |
++| CI-03 | Tampering | niezweryfikowany obraz OCI | złośliwa aplikacja na Edge | Trivy, digest, SBOM i opcjonalny Cosign | blokada CRITICAL |
++| CI-04 | Elevation of Privilege | runner uzyskuje dostęp do hosta Edge | przejęcie hosta | hosted isolated runner, least privilege | audyt workflow |
++| CI-05 | Denial of Service | wadliwy deploy | brak usługi | healthcheck i rollback | test przywrócenia |
+ 
+-| ID | STRIDE | Zasób / przepływ | Scenariusz | Skutek | Kontrola | Test weryfikujący |
+-|---|---|---|---|---|---|---|
+-| T01 | S – Spoofing | GitHub/F01 | przejęcie konta autora | nieautoryzowane zmiany | MFA, branch protection, review | próbka PR bez aprobaty nie trafia na main |
+-| T02 | T – Tampering | CI/F02 | modyfikacja workflow lub wstrzyknięta akcja | obejście skanów | review workflow, pinning akcji SHA | zmiana workflow wymaga review |
+-| T03 | R – Repudiation | pipeline/F04 | brak możliwości ustalenia autora deploy | brak audytu | SHA, run ID, kto zatwierdził, timestamp | raport audit trail |
+-| T04 | I – Disclosure | sekrety/F06 | token w repo lub logach | kompromitacja deploymentu | Gitleaks, brak secretów na PR, maskowanie | kontrolowana próbka fałszywego sekretu |
+-| T05 | D – DoS | Edge/F08 | wadliwy obraz zatrzymuje usługę | niedostępność | healthcheck, rollback | wdrożenie celowo niesprawnej wersji |
+-| T06 | E – Elevation | runner CI | przejęcie runnera/roli | dostęp do registry/Edge | hosted izolowany runner, minimalne permissions, bez docker.sock | przegląd uprawnień workflow |
+-| T07 | T – Tampering | obraz/F05/F07 | podmiana obrazu | obcy kod na Edge | digest, podpis (jeśli wdrożony), SBOM | odmowa obrazu ze złym digestem |
+-| T08 | T – Tampering | SCA/build | zależność z krytyczną podatnością | znana ścieżka ataku | Trivy, fail pipeline CRITICAL | nieudany scan w odizolowanym teście |
+-| T09 | S – Spoofing | deploy/F06 | fałszywa dyspozycja deploy | nieautoryzowane wydanie | uwierzytelnienie, dostęp tylko main, approval | żądanie bez uprawnień jest odrzucone |
+-| T10 | I – Disclosure | telemetria/F09 | wyciek logów/endpointów | ekspozycja danych | VPN/TLS, auth, redakcja danych | endpoint niedostępny anonimowo |
+-| T11 | T – Tampering | AI/F10 | fałszywy wynik skanu | błędna klasyfikacja alertów | walidacja źródła/schema, identyfikacja runu | odrzucenie błędnych rekordów |
+-| T12 | D – DoS | monitoring/Cloud | przeciążenie telemetrią | utrata obserwowalności | limity, retencja, alert utraty scrape | symulacja niedostępności źródła |
++## Scenariusze wymagane na odbiór
+ 
+-Legenda: S = podszywanie, T = modyfikacja, R = zaprzeczalność, I = ujawnienie informacji, D = odmowa usługi, E = eskalacja uprawnień.
++1. **Niedozwolony dostęp:** wywołanie `/api/v1/access/check` bez API key kończy się `401` (zabezpieczenie demonstracyjne, nie produkcyjne IAM).
++2. **Blokada CRITICAL:** testowy raport Trivy prowadzi do niepowodzenia CI przed publikacją obrazu (do wykonania).
++3. **Uszkodzona wersja:** nieudany healthcheck powoduje rollback z audytem (do wykonania M3–M5).
++4. **Offline:** Edge podejmuje lokalne decyzje i przechowuje raporty do wznowienia łączności (plan testów M3–M5).
+ 
+-## Scenariusz incydentu do demonstracji
+-
+-**INC-01: blokada krytycznej podatności**: w kontrolowanym przebiegu dostarczany jest artefakt z wynikami skanu `CRITICAL`. Pipeline powinien zakończyć się niepowodzeniem, zapisać raport i nie uruchomić etapu publikacji/wdrożenia. Próbki testowe wyłącznie w odizolowanym laboratorium.
+-
+-**INC-02: wadliwa aktualizacja i rollback**: poprawnie zbudowana wersja z niespełnionym healthcheck ma spowodować powrót do poprzedniego działającego digestu, z logiem zdarzenia.
+-
+-## Ryzyka rezydualne / ograniczenia
+-
+-- SAST/SCA nie wykrywają wszystkich luk; brak CVE ≠ brak podatności.
+-- Pojedyncza VM Edge nie gwarantuje HA; rollback usuwa wybrane awarie wdrożenia, nie awarie fizyczne hosta.
+-- SBOM zapewnia identyfikację składników, ale samodzielnie nie uwierzytelnia obrazu.
+-- Klasyfikator ML nie może samodzielnie zatwierdzać wdrożenia; polityki deterministyczne mają pierwszeństwo.
++**Ograniczenia:** znana tablica nie dowodzi tożsamości pojazdu, skany nie gwarantują braku luk, API key demo bez rotacji nie wystarcza do wdrożenia produkcyjnego, a SBOM nie jest podpisem integralności.
+--- a/docs/M2/05-rejestr-ryzyk.md
++++ b/docs/M2/05-rejestr-ryzyk.md
+@@ -1,18 +1,18 @@
+-# M2-05. Rejestr ryzyk
++# M2-05. Rejestr ryzyk SmartGate DevSecOps
+ 
+-Skala: **P** prawdopodobieństwo 1–3, **I** wpływ 1–3, **R=P×I** (1–2 niskie; 3–4 średnie; 6–9 wysokie). Oceny szacunkowe przed testami. Właścicieli przypisano według uzgodnionego podziału ról. Oceny ryzyka nadal są szacunkowe.
++**Metoda:** P = prawdopodobieństwo 1–3; I = wpływ 1–3; R=P×I (1–2 niskie, 3–4 średnie, 6–9 wysokie). Szacunki bez wyników testów. Weryfikować przy każdym sprint review.
+ 
+-| ID | Ryzyko | P | I | R | Priorytet | Działanie | Właściciel roli | Dowód skuteczności |
+-|---|---|---:|---:|---:|---|---|---|---|
+-| R01 | Wyciek sekretów/tokenu | 2 | 3 | 6 | wysokie | Gitleaks, brak sekretów w repo, uprawnienia minimalne | Kajetan | test i przegląd ustawień CI |
+-| R02 | Podatny lub podmieniony obraz | 2 | 3 | 6 | wysokie | SCA, skan obrazu, digest, SBOM | Michał / Kajetan | zablokowany skan, raport |
+-| R03 | Niedostępność Edge po deploy | 2 | 3 | 6 | wysokie | healthcheck, wersja last-known-good, rollback | Kamil | demonstracja awarii i odtworzenia |
+-| R04 | Escalation z CI do Edge | 2 | 3 | 6 | wysokie | runner izolowany, oddzielny agent/poświadczenie | Kajetan | przegląd ról i uprawnień |
+-| R05 | Niepowodzenie integracji Edge–Cloud | 2 | 2 | 4 | średnie | test sieci, TLS/VPN, wczesny end-to-end | Patryk | odbiór M3 |
+-| R06 | Niewiarygodna metryka AI | 2 | 2 | 4 | średnie | train/test split, baseline, F1, confusion matrix | Bartek | raport M4 |
+-| R07 | Zbyt szeroki zakres / mało czasu | 3 | 2 | 6 | wysokie | MVP first, etapowanie i WIP limit | Patryk | aktualny backlog |
+-| R08 | Ujawnienie logów | 2 | 2 | 4 | średnie | kontrola dostępu, retencja, redakcja | Bartek / Kajetan | test odmowy dostępu |
++| ID | Ryzyko | P | I | R | Redukcja | Właściciel | Weryfikacja |
++|---|---|---:|---:|---:|---|---|---|
++| R01 | Nieautoryzowana zmiana abonamentów | 2 | 3 | 6 | kontrola wersji/sygnatur i uprawnień | Kajetan / Kamil | test odmowy i integralności |
++| R02 | Fałszywa decyzja OPEN | 2 | 3 | 6 | fail-closed dla braku/wygaśnięcia, walidacja danych | Kajetan | test nieznanej/nieaktywnej tablicy |
++| R03 | Przerwa Internetu i utrata raportów | 3 | 2 | 6 | lokalny SQLite outbox + retry/idempotencja | Kamil | test odłączenia Cloud |
++| R04 | Nieaktualne uprawnienia offline | 2 | 3 | 6 | limity ważności snapshotu, polityka revocation | Patryk / Kajetan | test wygasłego snapshotu |
++| R05 | Wyciek tokenu CI lub API key | 2 | 3 | 6 | secrets management, least privilege, review | Kajetan / Michał | skan i audyt permissions |
++| R06 | Podatny / podmieniony obraz | 2 | 3 | 6 | Trivy, SBOM, digest i policy gate | Michał / Kajetan | zablokowany run CI |
++| R07 | Wadliwe wdrożenie | 2 | 3 | 6 | healthcheck, last-known-good, rollback | Kamil | kontrolowana awaria |
++| R08 | Niepoprawny model ML | 2 | 2 | 4 | baseline, niezależny test, precision/recall/F1 | Bartek | raport M4 |
++| R09 | Zbyt szeroki zakres do M4 | 3 | 3 | 9 | najpierw M2 dokumenty i M3 minimalny end-to-end | Patryk | sprint review |
++| R10 | Ujawnienie numerów rejestracyjnych | 2 | 2 | 4 | fikcyjne dane, minimalizacja i retencja | Kajetan / Bartek | przegląd logów i raportów |
+ 
+-## Procedura aktualizacji
+-
+-Na każdym spotkaniu: przegląd ocen, oznaczenie nowych ryzyk, przypisanie osoby, zarejestrowanie decyzji i odnośnika do testu. Akceptację ryzyka wysokiego zatwierdza lider wraz z Kajetan Engineer.
++**Najważniejsze dla M2:** R01, R05, R06, R09. Akceptację ryzyka wysokiego dokumentują Patryk i Kajetan; nie wpisujemy fikcyjnych zatwierdzeń.
+--- a/docs/M2/06-backlog.md
++++ b/docs/M2/06-backlog.md
+@@ -1,61 +1,32 @@
+-# M2-06. Backlog i harmonogram M2–M7
++# M2-06. Backlog SmartGate DevSecOps – pięć osób, M2–M7
+ 
+-**Status początkowy:** `TODO` nie oznacza, że prace nie zostały rozpoczęte przez zespół; należy aktualizować faktyczny stan. Role i osoby zostały przypisane zgodnie z uzgodnionym składem pięcioosobowym. Michał i Kamil współdzielą rolę Cloud / DevOps.
++Statusy: `GOTOWA DOKUMENTACJA`, `KOD PRZYGOTOWANY/DO TESTU`, `TODO`. P0 obowiązkowe; P1 ważne; P2 rozszerzenie. Dowodem wykonania zadania jest PR/commit, review i (gdy dotyczy) test/link do runu.
+ 
+-Priorytety: **P0** krytyczne do odbioru/MVP, **P1** ważne, **P2** rozszerzenie. Kryterium ukończenia zadania: artefakt w repo, review drugiej osoby, dowód testu (jeśli dotyczy), uaktualnione dokumenty.
++| ID | Etap | Zadanie | Właściciel | Priorytet | Kryterium akceptacji | Status |
++|---|---|---|---|---|---|---|
++| M2-01 | M2 27.11 | Karta projektu SmartGate, role i cel | Patryk | P0 | link, MVP parking + DevSecOps | GOTOWA DOKUMENTACJA |
++| M2-02 | M2 | C4 / architektura Edge–Cloud | Patryk + Kamil | P0 | granice stref i komponenty | GOTOWA DOKUMENTACJA |
++| M2-03 | M2 | DFD SmartGate + CI/CD | Patryk + Kajetan | P0 | dane, strefy, przepływy | GOTOWA DOKUMENTACJA |
++| M2-04 | M2 | STRIDE i rejestr ryzyk | Kajetan | P0 | co najmniej 6 klas i testy | GOTOWA DOKUMENTACJA |
++| M2-05 | M2 | Review ADR i decyzje otwarte | Patryk | P0 | status zaakceptowany przez zespół | TODO |
++| M2-06 | M2 | PoC test/build/scan i dowody | Michał + Kajetan | P0 | zielone CI, raport skanów | TODO (ostatni run failed) |
++| M2-07 | M2 | Symulator decyzji z fikcyjną tablicą | Kamil + Patryk | P1 | OPEN/DENY i 401, pytest | KOD PRZYGOTOWANY/DO TESTU |
++| M2-08 | M2 | Projekt danych i metryki AI | Bartek | P1 | baseline, schema, metryki | GOTOWA DOKUMENTACJA |
++| M3-01 | M3 11.12 | Edge/Cloud – 2 VM lub logiczne strefy | Kamil + Michał | P0 | udokumentowana separacja | TODO |
++| M3-02 | M3 | Lokalna SQLite abonamentów, outbox trwały | Kamil | P0 | offline decyzje i brak utraty zdarzeń | CZĘŚCIOWO: lokalny zapis zdarzeń |
++| M3-03 | M3 | Synchronizacja raportu co 60 s i snapshot uprawnień | Kamil + Bartek | P0 | idempotencja, retry, auth/TLS | TODO |
++| M3-04 | M3 | Zabezpieczenia API, polityka secretów | Kajetan | P0 | odmowa anonimowa, autoryzacja aktualizacji | CZĘŚCIOWO: demo API key |
++| M3-05 | M3 | CI: SAST/SCA/image scan, SBOM, GHCR | Michał + Kajetan | P0 | green run, test blokady CRITICAL | TODO |
++| M3-06 | M3 | Wdrożenie Edge/Cloud + healthcheck | Kamil + Michał | P0 | commit→CI→image→deploy | TODO |
++| M3-07 | M3 | Rollback last-known-good + audyt | Kamil | P0 | wadliwa wersja automatycznie cofnięta | TODO |
++| M4-01 | M4 12.12 | Telemetria z Edge i CI | Bartek | P0 | min. 2 źródła | TODO |
++| M4-02 | M4 | Dashboard, alert zdarzeń parkingowych | Bartek | P0 | 1 wykryty incydent | TODO |
++| M4-03 | M4 | Oznaczony dataset syntetyczny | Bartek | P0 | data split z opisem | TODO |
++| M4-04 | M4 | Baseline i model ML | Bartek | P0 | precision/recall/F1 porównane | TODO |
++| M5-01 | M5 15.01 | Plan i dowody testów (offline, API, CRITICAL) | Kajetan + Patryk | P0 | scenariusze i wyniki | TODO |
++| M5-02 | M5 | Test rollbacku i odtwarzalności | Kamil | P0 | dowód odtworzenia | TODO |
++| M6-01 | M6 16.01 | Audyt techniczny / przegląd konfiguracji | Kajetan + Patryk | P0 | lista kontroli i dowody | TODO |
++| M7-01 | M7 31.01 | Finalny raport, repo, demo i wkład zespołu | Patryk + cały zespół | P0 | prezentacja end-to-end, Q&A | TODO |
++| EXT-01 | opcjonalne | Kamera ANPR / prawdziwy szlaban | – | P2 | celowo POZA ZAKRESEM MVP | NIE PLANOWAĆ |
+ 
+-| ID | Etap / termin | Zadanie (rezultat) | P | Rola | Kryterium akceptacji | Stan |
+-|---|---|---|---|---|---|---|
+-| M2-01 | M2 / 27.11.2026 | Weryfikacja karty M1 i ról | P0 | Patryk | cel, MVP, 5 osób i role; potwierdzenie zgody prowadzącego | TODO |
+-| M2-00 | M2 | Potwierdzenie odstępstwa: zespół 5-osobowy | P0 | Patryk | zgoda prowadzącego odnotowana w M1 | TODO |
+-| M2-02 | M2 | Diagram architektury i wykaz komponentów | P0 | Patryk | Edge, Cloud, CI, registry i monitoring na diagramie | TODO |
+-| M2-03 | M2 | DFD + granice zaufania | P0 | Patryk / Kajetan | przepływy F01–F13, dane i transport | TODO |
+-| M2-04 | M2 | Model STRIDE | P0 | Kajetan | min. 6 klas + kontrole i testy | TODO |
+-| M2-05 | M2 | Rejestr ryzyk | P0 | Kajetan | 3 kluczowe ryzyka i mitigacje | TODO |
+-| M2-06 | M2 | Backlog, role, roadmap | P0 | Patryk | zadania M2–M7, priorytety, kryteria | TODO |
+-| M2-07 | M2 | PoC newralgicznego elementu | P0 | Michał (wsparcie Kamil) | uruchomiony build+test+scan, dowody i link | TODO |
+-| M2-08 | M2 | Założenia metryk AI | P1 | Bartek | schema danych, baseline i miary | TODO |
+-| M3-01 | M3 / 11.12.2026 | VM Edge i Cloud odrębne logicznie | P0 | Kamil (wsparcie Michał) | diagram sieci i dostęp do obu hostów | TODO |
+-| M3-02 | M3 | Aplikacja kontenerowa i testy | P0 | Kamil (wsparcie Michał) | `/health` działa, testy green | CZĘŚCIOWO: lokalne 2/2 PASS 22.11, kontener do weryfikacji |
+-| M3-03 | M3 | Test, SAST, SCA, image scan | P0 | Kajetan (wsparcie Michał) | blokada krytycznej podatności | TODO |
+-| M3-04 | M3 | GHCR + SBOM/manifest | P0 | Michał (wsparcie Kamil) | powtarzalna publikacja image digest + SBOM | TODO |
+-| M3-05 | M3 | Autoryzowany deployment Edge+Cloud | P0 | Kamil (wsparcie Michał) | pierwszy end-to-end oraz kontrola auth | TODO |
+-| M3-06 | M3 | Kontrole transmisji i uprawnień | P0 | Kajetan (wsparcie Kamil) | przegląd ACL/secretów/TLS/VPN | TODO |
+-| M3-07 | M3 | Rollback: wersja last-known-good | P0 | Kamil (wsparcie Michał) | przywrócenie po wadliwej aktualizacji | TODO |
+-| M4-01 | M4 / 12.12.2026 | Telemetria CI i Edge | P0 | Bartek | co najmniej dwa źródła w kolektorze | TODO |
+-| M4-02 | M4 | Dashboard i alert | P0 | Bartek | przykład incydentu widoczny w GUI | TODO |
+-| M4-03 | M4 | Dane syntetyczne z etykietami | P0 | Bartek | schema i podział train/test | TODO |
+-| M4-04 | M4 | Baseline regułowy | P0 | Bartek | wyniki bazowe na zbiorze testowym | TODO |
+-| M4-05 | M4 | Klasyfikator AI/ML | P0 | Bartek | precision/recall/F1, confusion matrix | TODO |
+-| M5-01 | M5 / 15.01.2027 | Plan testów i dowody | P0 | Kajetan | scenariusze green, failed build/scan, rollback | TODO |
+-| M5-02 | M5 | Test autoryzacji i izolacji | P0 | Kajetan | odmowa nieuprawnionego deploy/odczytu | TODO |
+-| M5-03 | M5 | Lista usterek i poprawek | P0 | Patryk | priorytety, właściciele, status | TODO |
+-| M6-01 | M6 / 16.01.2027 | Odbiór prototypu | P0 | Cały zespół | działające demo na labie | TODO |
+-| M6-02 | M6 | Przegląd konfiguracji | P0 | Kajetan | checklista kont, sekretów, sieci | TODO |
+-| M7-01 | M7 / 31.01.2027 | Repo finalne i instrukcja odtworzenia | P0 | Patryk | czysty clone i uruchomienie | TODO |
+-| M7-02 | M7 | Raport, prezentacja i indywidualny wkład | P0 | Cały zespół | komplet dowodów, demo i Q&A | TODO |
+-| EXT-01 | opcjonalne | Rozbudowany Terraform/Ansible IaC | P2 | Michał / Kamil | idempotentne provisioning | TODO |
+-| EXT-02 | opcjonalne | Automatyczna reakcja na alert ML | P2 | Bartek | scenariusz, bez nadpisywania policy gate | TODO |
+-
+-## Podział obowiązków dla 5 osób
+-
+-- **Patryk – Lider / architekt:** karta M1, diagramy, DFD, backlog, koordynacja, integracja i przeglądy.
+-- **Michał – Cloud / DevOps:** CI/CD, GitHub Actions, skany w workflow, publikacja GHCR, proces release; współpraca z Kamilem.
+-- **Kamil – Cloud / DevOps:** Docker, konfiguracja VM Edge/Cloud, sieć, wdrożenia, healthcheck i rollback; współpraca z Michałem.
+-- **Kajetan – Security Engineer:** STRIDE, rejestr ryzyka, IAM, polityki bezpieczeństwa, skany i scenariusze testów.
+-- **Bartek – AI / Monitoring:** telemetria z CI i Edge, dashboard, alerty, baseline ML, klasyfikator i raport jakości.
+-
+-**Uzgodnione przez zespół; zgoda prowadzącego na 5 osób: [POTWIERDZIĆ].**
+-
+-## Zależności i krytyczna ścieżka
+-
+-`M2-07 → M3-03 → M3-04 → M3-05 → M3-07 → M5-01 → M6-01`.
+-
+-Równolegle: `M2-08 → M4-01 → M4-03 → M4-04 → M4-05`. Ponieważ M3 i M4 dzieli jeden dzień, rozwój danych i AI musi rozpocząć się wcześniej.
+-
+-## Sprint review i praca zespołowa
+-
+-- 48 h przed spotkaniem (zalecenie planu): oddać aktualne dokumenty i dowody.
+-- Każde zadanie ma issue, właściciela, PR, kryterium akceptacji.
+-- Każdy merge do `main` przechodzi review. Historia commitów pokazuje wkład indywidualny.
+-- Po review uaktualnić risk register, ADR, backlog i ograniczenia.
++**Ważne:** prace M3 i M4 trzeba prowadzić równolegle – odbiory dzieli jeden dzień. Patryk koordynuje review, ale właściciel danego zadania odpowiada za jego dowóz.
+--- a/docs/M2/07-decyzje-ADR.md
++++ b/docs/M2/07-decyzje-ADR.md
+@@ -1,22 +1,25 @@
+-# M2-07. Dziennik decyzji architektonicznych (ADR)
++# M2-07. Rejestr decyzji ADR – SmartGate
+ 
+-Decyzje są **propozycjami**; zespół zaznacza `ZATWIERDZONE`, `ODRZUCONE` lub `DO DECYZJI` i wpisuje datę.
++Wybory uzgodnione w rozmowie oznaczono jako `UZGODNIONE W ZESPOLE`; pozostałe to propozycje, do formalnego review. Nie utożsamiać propozycji z wdrożeniem.
+ 
+-| ADR | Status | Decyzja | Uzasadnienie / kompromis |
++| ID | Status | Decyzja | Uzasadnienie / ryzyko |
+ |---|---|---|---|
+-| ADR-001 | DO DECYZJI | Dwie VM Edge + symulowana Cloud | spełnia hybrydowość bez płatnej chmury; trzeba utrzymywać VM |
+-| ADR-002 | DO DECYZJI | GitHub Actions + GHCR | proste CI i rejestr; ograniczenie zależnością od GitHub |
+-| ADR-003 | DO DECYZJI | FastAPI + Docker Compose | szybkie MVP; brak orkiestracji wielu hostów |
+-| ADR-004 | DO DECYZJI | Hosted runner dla PoC, zero self-hosted runner w Edge | dobra izolacja od labu; deploy wymaga osobnego bezpiecznego kanału |
+-| ADR-005 | DO DECYZJI | Blokada `CRITICAL` ze skanera Trivy | jednoznaczna reguła; możliwe false-positive i konieczne wyjątki |
+-| ADR-006 | DO DECYZJI | SBOM jako wymagany artefakt, Cosign dodatkowo | katalog akceptuje SBOM; podpis zwiększa pewność pochodzenia |
+-| ADR-007 | DO DECYZJI | Metryki z Edge i CI + ML do klasyfikacji alertów | spełnia 2 źródła i wymóg AI; potrzebne oznaczone syntetyczne dane |
+-| ADR-008 | DO DECYZJI | Deterministyczna blokada deploy, ML wyłącznie doradcze | brak automatycznych błędnych decyzji przez model |
++| ADR-001 | UZGODNIONE W ZESPOLE | przypadek użycia SmartGate: lokalny szlaban parkingowy | czytelny scenariusz Edge–Cloud; bez fizycznego sprzętu |
++| ADR-002 | PROPONOWANE | FastAPI + SQLite na Edge | lokalne decyzje bez sieci, łatwe testy; ochrona bazy konieczna |
++| ADR-003 | PROPONOWANE | dwie logicznie odrębne VM Edge i Cloud | spełnienie hybrydowości w Proxmox |
++| ADR-004 | PROPONOWANE | GitHub Actions + GHCR, hosted runner | izolacja CI, nie trzymać runnera na Edge |
++| ADR-005 | PROPONOWANE | SAST/SCA/Trivy, blokada CRITICAL, SBOM | powtarzalne security gates; skany nie zastępują review |
++| ADR-006 | PROPONOWANE | lokalna kolejka SQLite + idempotentna synchronizacja co 60 sekund | zdarzenia nie giną offline; konieczne ID i retry |
++| ADR-007 | DO DECYZJI | ważność snapshotu uprawnień w trybie offline | revocation versus dostępność; polityka fail-closed dla wygasłych uprawnień |
++| ADR-008 | PROPONOWANE | osobna weryfikacja obrazów/digestu i rollback | kontrola integralności i odporności |
++| ADR-009 | PROPONOWANE | AI/ML analizuje alarmy, nigdy nie otwiera szlabanu | rozdzielenie decyzji bezpieczeństwa od analityki |
++| ADR-010 | PROPONOWANE | dane wyłącznie fikcyjne, bez kamery ANPR i płatności | minimalizacja ryzyka, koncentracja na DevSecOps |
+ 
+-## Szablon nowej decyzji
++## Szablon ADR
+ 
+-- ID i data:
+-- Kontekst i rozpatrzone warianty:
+-- Decyzja i właściciel:
+-- Konsekwencje i ryzyka:
+-- Test/warunek ponownego rozważenia:
++- Data / autor / recenzenci:
++- Kontekst:
++- Warianty:
++- Decyzja i status:
++- Skutki bezpieczeństwa i utrzymania:
++- Testy / warunek rewizji:
+--- a/docs/M2/08-PoC-i-dowody.md
++++ b/docs/M2/08-PoC-i-dowody.md
+@@ -1,49 +1,34 @@
+-# M2-08. Proof of Concept i dowody wykonalności
++# M2-08. PoC SmartGate – plan i dowody
+ 
+-**Cel M2:** pokazać wykonalność kluczowego etapu: automatyczny test → build obrazu → skan zależności/obrazu → bramka `CRITICAL` → publikacja do GHCR (tylko na zaufanym branchu). **Status:** testy lokalne pytest 2/2 PASS i start serwera 8003 potwierdzone logiem 22.11.2026; CI/GHCR i skany NIEZWERYFIKOWANE. [Protokół](13-testy-lokalne-2026-11-22.md).
++## Stan aktualny
+ 
+-## Wymagania PoC
++- 22.11.2026: **historyczny szkielet** FastAPI przeszedł lokalnie 2/2 testów, 3 warnings, Uvicorn na porcie 8003 ([protokół](13-testy-lokalne-2026-11-22.md)). To nie są testy logiki SmartGate.
++- GitHub Actions run `45059847478` dla commitu `0c52d7d`: FAILED w `Tests`, Semgrep/Trivy/build/publish pominięte – <https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app/actions/runs/45059847478>.
++- Zmieniono workflow na `python -m pytest -q` jako potencjalne rozwiązanie błędu importu z katalogu root; **wymaga sprawdzenia w CI**.
++- Nowy symulator SmartGate implementuje lokalne decyzje, SQLite, zdarzenia i demonstracyjne uwierzytelnienie API key. Nie realizuje jeszcze synchronizacji Cloud ani automatycznego deploy.
+ 
+-- Repozytorium z włączonym GitHub Actions.
+-- Uprawnienia `GITHUB_TOKEN` do zapisu pakietów tylko dla joba publikacji w `main`; PR bez poświadczeń deploymentowych.
+-- Dockerfile aplikacji i co najmniej jeden test pytest.
+-- Skan kodu (Semgrep) i zależności (Trivy fs), skan obrazu (Trivy image) z bramką critical.
+-- Artefakt SBOM; publikacja obrazu po przejściu kontroli.
+-
+-## Kroki lokalne
++## Testy do wykonania na nowym kodzie
+ 
+ ```bash
+-python -m venv .venv
+-source .venv/bin/activate
+-python -m pip install -r requirements-dev.txt
+-pytest -q
+-python -m uvicorn app.main:app --host 127.0.0.1 --port 8003
+-# w osobnej konsoli
+-curl -f http://127.0.0.1:8003/health
++./run-local.sh test
++./run-local.sh start
++# drugi terminal
++curl http://127.0.0.1:8003/health
++curl -X POST http://127.0.0.1:8003/api/v1/access/check \
++  -H 'Content-Type: application/json' \
++  -H 'X-API-Key: local-demo-only-change-me' \
++  -d '{"plate":"SK 12345"}'
+ ```
+ 
+-## Kroki CI
++## Dowody M2 – uzupełnić po uruchomieniu
+ 
+-1. Wypchnąć na własny branch i otworzyć PR: zweryfikować testy i skanowanie bez publikacji do registry.
+-2. Po review wykonać merge do `main`: zweryfikować raporty, SBOM i opublikowany obraz w GHCR.
+-3. Przygotować **kontrolowany test blokady** (np. odrębny branch i reguła testowa / skan podatnego artefaktu z potwierdzonym wynikiem CRITICAL). Nie wprowadzać niebezpiecznego komponentu do wydania głównego.
+-4. Zweryfikować, że pipeline z CRITICAL nie uruchamia kroku publikacji.
++| ID | Dowód | Status |
++|---|---|---|
++| E01 | Testy nowego SmartGate pytest | WYMAGA POTWIERDZENIA / LOGU |
++| E02 | API: aktywny abonament daje OPEN | WYMAGA POTWIERDZENIA / LOGU |
++| E03 | API: brak klucza daje 401 | WYMAGA POTWIERDZENIA / LOGU |
++| E04 | CI: green build/test, skany Semgrep i Trivy | WYMAGA RUNU |
++| E05 | CI: SBOM + GHCR | WYMAGA RUNU |
++| E06 | Kontrolowana blokada CRITICAL | WYMAGA RUNU |
+ 
+-**Uwaga:** demo włączenia realnego `CRITICAL` może zależeć od aktualnej bazy CVE; można dodatkowo sprawdzić logikę policy gate przez kontrolowany fixture raportu, ale należy wyraźnie oznaczyć symulację.
+-
+-## Formularz dowodów (uzupełnić po wykonaniu)
+-
+-| ID | Dowód | Link/ścieżka | Wynik | Data |
+-|---|---|---|---|---|
+-| E01 | Run udanego PR: test + skany | [DO UZUPEŁNIENIA] | NIE WYKONANO | – |
+-| E02 | Run main i publikacja GHCR | [DO UZUPEŁNIENIA] | NIE WYKONANO | – |
+-| E03 | SBOM z poprawnego pipeline | [DO UZUPEŁNIENIA] | NIE WYKONANO | – |
+-| E04 | Run z zablokowanym CRITICAL | [DO UZUPEŁNIENIA] | NIE WYKONANO | – |
+-| E05 | Log decyzji policy gate | [DO UZUPEŁNIENIA] | NIE WYKONANO | – |
+-
+-## Oczekiwane kryteria sukcesu
+-
+-- Przynajmniej jeden autentyczny zielony run i jeden kontrolowany odrzucony run (jeśli możliwe przed M2).
+-- Brak sekretów w repozytorium i outputach.
+-- Ślad łączący obraz OCI z SHA commitu oraz wynikami testów.
+-- Wyraźna informacja: deployment do Edge i rollback będą dopiero w M3/M5.
++Nie podpisywać jako wykonane dowodów, których nie ma. Zamieścić ID joba, SHA, logi/zrzuty i daty.
+--- a/docs/M2/09-checklista-odbioru.md
++++ b/docs/M2/09-checklista-odbioru.md
+@@ -1,23 +1,19 @@
+-# M2-09. Checklista przed 27.11.2026
++# M2-09. Checklista SmartGate – 27.11.2026
+ 
+-**Zalecany termin udostępnienia materiałów:** 25.11.2026 (48 h przed spotkaniem; zalecenie, nie twardy termin zaliczenia).
++**Rekomendowane udostępnienie materiałów:** 25.11.2026 (48 godzin wcześniej).
+ 
+-- [ ] Karta M1: pięć osób i role uzgodnione, link repo wpisany; nazwa zespołu i zgoda prowadzącego nadal do uzupełnienia.
+-- [ ] Zgoda prowadzącego na odstępstwo od 4-osobowego składu jest potwierdzona.
+-- [ ] Diagram architektury pokazuje CI, rejestr, Edge, Cloud, monitoring i AI/ML.
+-- [ ] DFD zawiera źródła/magazyny danych, przepływy i granice zaufania.
+-- [ ] Model STRIDE obejmuje wszystkie sześć kategorii zagrożeń i zabezpieczenia.
+-- [ ] Rejestr wskazuje przynajmniej trzy główne ryzyka oraz działania ograniczające.
+-- [ ] Backlog ma priorytety, właścicieli i kryteria akceptacji, sprinty M2–M7.
+-- [ ] Wyjaśniono poświadczenia, uprawnienia CI i izolację runnera.
+-- [ ] Potwierdzono sposób symulacji Edge i Cloud; decyzje zapisano w ADR.
+-- [ ] PoC posiada rzeczywiste linki i logi *lub* jawnie opisano status i plan dokończenia.
+-- [ ] Ustalono źródła danych i metryki AI/ML, z porównaniem do metody bazowej.
+-- [ ] W repo brak sekretów i danych rzeczywistych.
+-- [ ] Każdy członek zespołu zna swoją część prezentacji.
++- [x] Wskazano temat 04, nazwę SmartGate DevSecOps i pięć imion z rolami.
++- [x] Karta projektu opisuje przypadek użycia i odróżnia aplikację od procesu DevSecOps.
++- [x] Diagram zawiera Edge, Cloud, CI, GHCR, SQLite i monitoring.
++- [x] DFD zawiera magazyny, przepływy, granice zaufania i kierunki synchronizacji.
++- [x] STRIDE uwzględnia bezpieczeństwo parkingu i supply-chain.
++- [x] Backlog M2–M7 oraz kryteria odbioru są przygotowane.
++- [x] Historia: lokalne testy wcześniejszego szkieletu 2/2 PASS (22.11.2026).
++- [ ] Potwierdzono nazwę zespołu oraz formalny status pięciu osób.
++- [ ] Wspólny review/akceptacja przez wszystkie osoby.
++- [ ] Nowe testy SmartGate i kontenera z logami wykonane w środowisku zespołu.
++- [ ] GitHub Actions: zielony test/build/skany i dowody (wcześniejszy run był czerwony).
++- [ ] PoC bezpieczeństwa: kontrolowany failed scan i brak publikacji obrazu.
++- [ ] Przygotowano prezentację i każdy umie omówić swoją część.
+ 
+-- [x] Lokalnie: 2/2 testy pytest zaliczone, serwer Uvicorn uruchomiony na 8003 (log 22.11.2026).
+-
+-## Kryteria "gotowe do przeglądu"
+-
+-Dokumenty renderują się, diagramy Mermaid nie mają błędów składni, linki repo działają, a niewykonane elementy są jawnie oznaczone. Status PoC należy przedstawić zgodnie ze stanem faktycznym.
++**Oznaczone `x` oznacza opracowany dokument/ustalony fakt; nie stanowi podpisu prowadzącego ani potwierdzenia wdrożenia.**
+--- a/docs/M2/10-plan-AI-ML.md
++++ b/docs/M2/10-plan-AI-ML.md
+@@ -1,33 +1,28 @@
+-# M2-10. Plan komponentu AI/ML i monitoringu
++# M2-10. Plan AI/ML i monitoringu SmartGate
+ 
+-**Cel:** klasyfikacja alarmów CI/CD na `routine`, `security`, `quality`, `deployment_failure` oraz sygnalizowanie zdarzeń wymagających reakcji. Model nie steruje polityką publikacji — blokady CI są deterministyczne.
++**Cel:** wykrywanie nietypowych zdarzeń po wdrożeniu oraz problemów jakości CI/CD. **AI nie podejmuje decyzji `OPEN/DENY` ani nie obchodzi security gate.** W M2 jest to koncepcja, nie wytrenowany model.
+ 
+-## Źródła danych (minimum dwa)
++## Dwa niezależne źródła telemetrii
+ 
+-1. GitHub Actions / skanery – `pipeline_result`, `tests_failed`, `critical_cves`, `high_cves`, `build_duration_seconds`.
+-2. Edge / Prometheus – `healthcheck_ok`, `http_5xx_rate`, `deployment_duration`, `rollback_required`.
++1. **SmartGate Edge:** liczba decyzji OPEN/DENY/min, wskaźnik odmów, czas odpowiedzi, status lokalnej kolejki, zaległe raporty, dostępność Cloud, wersja aplikacji.
++2. **GitHub Actions/DevSecOps:** status testów i skanów, CRITICAL/HIGH, czas budowania, SHA wersji, rollback.
+ 
+-## Dane
++## Proponowana analiza
+ 
+-W M4: oznaczony, syntetyczny zbiór o klasach normal/security/quality/deployment_failure. Podać liczbę próbek, sposób generacji, udział klas i ograniczenia. Separować trening i test; nie wykorzystywać tego samego przebiegu zdarzenia po obu stronach podziału.
++- **Zdarzenie przykładowe:** po wydaniu nowej wersji skacze liczba odmów lub opóźnienie API; dodatkowo rośnie backlog raportów.
++- **Baseline:** jawne reguły, np. >70% odmów w oknie 5 min i co najmniej 20 zdarzeń lub brak synchronizacji >180 s.
++- **ML:** IsolationForest dla anomalii numerycznych albo nadzorowany klasyfikator (np. RandomForest) przy wystarczającym zbiorze oznaczonym.
++- **Ocena:** precision, recall, F1 oraz false positive rate na odrębnym zbiorze testowym; porównać **te same** dane dla baseline i ML.
++- **Dane:** wyłącznie syntetyczne, z oznaczeniem okien normalnych oraz incydentów; w metodologii podać seed, sposób generacji i podział, unikając przecieku danych między treningiem/testem.
+ 
+-## Metody
++## Oczekiwane dowody M4
+ 
+-- Baseline: ręczne reguły, np. `critical_cves > 0 → security`, `tests_failed > 0 → quality`, `healthcheck_ok=0 → deployment_failure`.
+-- ML: prosty `DecisionTreeClassifier` albo `RandomForestClassifier` z `scikit-learn`.
+-- Miary: `precision`, `recall`, `macro-F1`, macierz pomyłek, liczba false positives; zestawić baseline i ML na tym samym teście.
+-- Monitorować opóźnienie klasyfikacji i wolumen zdarzeń, jeśli dane pozwolą.
++| Dowód | Status |
++|---|---|
++| Telemetria Edge + CI z 2 źródeł | DO WYKONANIA |
++| Jeden syntetyczny incydent i alert | DO WYKONANIA |
++| Dataset train/test i opis etykiet | DO WYKONANIA |
++| Wyniki baseline i ML (precision/recall/F1) | DO ZMIERZENIA |
++| Dashboard lub raport wizualny | DO WYKONANIA |
+ 
+-## Uzasadnienie
+-
+-Pipeline generuje sygnały z różnych etapów; klasyfikator może nadać alertom wspólną kategorię oraz priorytet dla operatora. Na małych danych syntetycznych możliwe jest zawyżenie jakości — koniecznie pokazać ograniczenia i bazowe reguły.
+-
+-## Wyniki do uzupełnienia przy M4
+-
+-| Parametr | Baseline | ML |
+-|---|---|---|
+-| Liczba próbek testowych | [DO ZMIERZENIA] | [DO ZMIERZENIA] |
+-| Precision (macro) | [DO ZMIERZENIA] | [DO ZMIERZENIA] |
+-| Recall (macro) | [DO ZMIERZENIA] | [DO ZMIERZENIA] |
+-| F1 (macro) | [DO ZMIERZENIA] | [DO ZMIERZENIA] |
+-| False positives | [DO ZMIERZENIA] | [DO ZMIERZENIA] |
++**Ograniczenie:** mały sztuczny dataset może zawyżać wyniki modelu, co musi zostać omówione w raporcie.
+--- a/docs/M2/11-macierz-wymagan.md
++++ b/docs/M2/11-macierz-wymagan.md
+@@ -1,17 +1,18 @@
+-# M2-11. Macierz śledzenia wymagań
++# M2-11. Macierz wymagań – SmartGate / temat 04
+ 
+-| Źródło | Wymaganie | Dokument / zadanie | Odbiór |
++| Źródło | Wymaganie | Artefakt | Etap/status |
+ |---|---|---|---|
+-| Plan §4 | M2: diagram, przepływ danych, model zagrożeń, backlog | 02–06 | M2 |
+-| Plan §7 | dowód wykonalności newralgicznego elementu | 08 / M2-07 | M2 |
+-| Plan §5 | Edge + Cloud jako dwa logicznie oddzielone komponenty | 02 / M3-01 | M3 |
+-| Plan §5 | auth, TLS, sekrety, role, logi, ryzyko | 02,04,05 / M3-06 | M3–M6 |
+-| Plan §5 | telemetria z >1 źródła i alert | 10 / M4-01,02 | M4 |
+-| Plan §5 | AI/ML, dane testowe, metryka, baseline | 10 / M4-03..05 | M4 |
+-| Plan §5 | odtwarzalność, repo, konfiguracja/skrypty, testy | README / M7-01 | M7 |
+-| Katalog temat 04 | automatyczne budowanie i deployment | 08 / M3-04,05 | M3 |
+-| Katalog temat 04 | testy + SAST/SCA + obraz | workflow / M3-03 | M3 |
+-| Katalog temat 04 | SBOM lub podpis/manifest | 08 / M3-04 | M3 |
+-| Katalog temat 04 | rollback | 02,04 / M3-07 | M3–M5 |
+-| Katalog temat 04 | blokada CRITICAL, brak sekretów, runner isolation | 04,08 / M3-03,06 | M3–M5 |
+-| Katalog temat 04 | kontrolowany fail build/scan i ślad audytowy | 04,08 / M5-01 | M5 |
++| Plan §4 | M2: architektura, DFD, STRIDE i backlog | 02–06 | M2: projektowane |
++| Plan §7 | dowód wykonalności | 08,13,14 | lokalne stare 2/2, nowy PoC do sprawdzenia |
++| Plan §5 | 2 rozdzielone logicznie warstwy Edge/Cloud | 02,03 | M3: planowane |
++| Katalog nr 04 | build + test + deploy | `.github/workflows/ci.yml`, M3 | CI do naprawy, Edge deploy planowany |
++| Katalog nr 04 | SAST, SCA, image scan, critical gate | CI, STRIDE | CI do zweryfikowania |
++| Katalog nr 04 | SBOM/podpis/manifest | workflow | generowanie zdefiniowane, wynik do potwierdzenia |
++| Katalog nr 04 | rollback i audyt | backlog M3/M5 | planowane |
++| Plan §5 | auth, szyfrowanie, sekrety, RBAC | STRIDE, ADR, backlog | demonstracyjne API key, reszta planowana |
++| Plan §5 | dwa źródła telemetrii | AI plan | M4: planowane |
++| Plan §5 | AI/ML z metryką i baseline | AI plan | M4: planowane |
++| SmartGate – wybór zespołu | fikcyjna tablica i lokalna decyzja | `app/main.py`, `app/parking.py`, testy | przygotowano kod, do weryfikacji CI |
++| SmartGate – wybór zespołu | działanie offline, raport co minutę | architektura, backlog | M3: planowane |
++
++Ważne: **SmartGate jest demonstratorem**, a celem ocenianym w temacie 04 jest zabezpieczony pipeline DevSecOps i integracja Edge–Cloud.
+--- a/docs/M2/12-prezentacja-M2.md
++++ b/docs/M2/12-prezentacja-M2.md
+@@ -1,27 +1,25 @@
+-# M2-12. Scenariusz omówienia na spotkaniu
++# M2-12. Prezentacja SmartGate DevSecOps (propozycja 7–10 min)
+ 
+-**Propozycja prezentacji około 7–10 minut; nie jest to limit narzucony przez prowadzącego.**
++1. **Patryk (1–2 min):** cel tematu 04, przykład szlabanu, zakres MVP vs plan M3–M4, diagram Edge–Cloud.
++2. **Kamil (1 min):** lokalna decyzja SQLite, tryb offline i plan synchronizacji / rollbacku.
++3. **Michał (2 min):** GitHub Actions, pytest, skanery, GHCR, co już działa i co należy naprawić.
++4. **Kajetan (1–2 min):** STRIDE – fałszywy klient, modyfikacja abonamentów, podatny obraz, zabezpieczenia.
++5. **Bartek (1 min):** dwa źródła telemetrii, anomalie, baseline i metryka F1.
++6. **Patryk (1 min):** podsumowanie, backlog, termin następnego etapu.
+ 
+-1. **1 min – Problem i MVP:** ryzyko manualnych wdrożeń, co system automatyzuje.
+-2. **2 min – Diagram:** GitHub/CI, GHCR, Edge, Cloud, monitoring; zaznaczyć granice zaufania.
+-3. **1–2 min – DFD:** przykład F01→F05→F07→F09; sekrety nigdy nie trafiają do kodu ani logów.
+-4. **2 min – STRIDE:** omówić T04, T07, T05 i zabezpieczenia/plan testów.
+-5. **1 min – Backlog:** najbliższe kamienie milowe M3 i M4 (tylko dzień odstępu).
+-6. **1–2 min – PoC:** pokazać prawdziwy run Actions i raport Trivy; jeśli brak runu, jawnie powiedzieć, że nie wykonano.
++## Demo
+ 
+-## Proponowany podział omówienia
++- Pokazać `/health` i `/docs` na porcie 8003.
++- Sprawdzić fikcyjną tablicę `SK 12345` → `OPEN`, `KR 98765` → `DENY`.
++- Sprawdzić brak API key → `401`.
++- Pokazać prawdziwy GitHub Actions i odróżnić zrealizowane kontrole od planowanych.
+ 
+-- **Patryk:** cel, MVP, diagram i DFD.
+-- **Michał:** pipeline CI/CD, testy, publikacja GHCR.
+-- **Kamil:** Docker i plan infrastruktury Edge/Cloud, wdrożenie oraz rollback.
+-- **Kajetan:** model zagrożeń, ryzyka i kontrola bezpieczeństwa.
+-- **Bartek:** telemetria i metryki jakości AI/ML.
++## Pytania
+ 
+-## Możliwe pytania prowadzącego
++**Czy to jest tylko projekt szlabanu?** Nie. Szlaban to przypadek użycia do weryfikacji DevSecOps, bezpieczeństwa dostaw i Edge–Cloud.
+ 
+-- **Co w projekcie jest hybrydowe?** Dwie logicznie odseparowane strefy Edge i Cloud oraz usługi SaaS CI.
+-- **Czy SBOM zapewnia integralność?** Nie; do integralności służą digesty/podpisy i kontrola dystrybucji artefaktów.
+-- **Co blokuje krytyczne CVE?** Twarda bramka skanera w CI przed push/deploy.
+-- **Jak unikniecie wycieku tokenu?** Least privilege, brak sekretów w PR, kontrola logów i repo.
+-- **Czy AI decyduje o wdrożeniu?** Nie. AI klasyfikuje alerty; security gate jest deterministyczny.
+-- **Jak działa rollback?** Po nieudanym healthcheck automatyczny powrót do ostatniego działającego digestu z audytem.
++**Czy system działa offline?** Lokalna baza obsługuje decyzję, ale symulacja awarii i synchronizacji kolejki wymaga implementacji M3.
++
++**Czy AI otwiera bramę?** Nie. Decyzja jest deterministyczna, AI klasyfikuje alarmy i anomalie.
++
++**Czy SBOM zabezpiecza integralność?** Sam SBOM nie; stosuje się digest i ewentualny podpis.
+--- /dev/null
++++ b/docs/M2/14-audyt-migracji-smartgate.md
+@@ -0,0 +1,28 @@
++# M2-14. Audyt GitHub i migracja do SmartGate
++
++**Repozytorium źródłowe:** `pniewrzol/-DevSecOps-Edge-Cloud-app`, zweryfikowany stan gałęzi main: `0c52d7dd7284d80f7cae268d2a0dcd4802f276bd` (22.11.2026). Zaktualizowana paczka została oparta na pełnej kopii tych plików; brak zapisu bezpośrednio do GitHub z powodu 403 uprawnień integracji.
++
++## Ustalenia audytu
++
++| Wniosek | Istotność | Zmiana |
++|---|---|---|
++| Dokumentacja opisuje ogólną aplikację, nie SmartGate | wysoka | wymieniono kartę, C4, DFD, STRIDE, ADR, ryzyka, backlog, AI, matrycę i demo |
++| Pipeline Actions run 45059847478 zakończył się błędem `Tests` | wysoka | `pytest -q` → `python -m pytest -q`; dokładna przyczyna wymaga logu; przebieg CI do powtórzenia |
++| Brak API kontroli szlabanu | wysoka | dodano lokalny symulator decyzji SQLite, fikcyjne tablice i testy |
++| Brak rzeczywistego Cloud sync i rollback | wysoka | pozostawiono jako plan M3–M5, bez fałszywych deklaracji |
++| Historyczne 2/2 PASS dotyczą poprzedniej aplikacji | wysoka | zachowano protokół bez przypisywania wyników nowej logice |
++| Publiczne API bez auth dla logiki parkingu | średnia | wprowadzono demonstracyjny wymagany nagłówek X-API-Key; docelowe IAM nadal planowane |
++| Docker w read-only potrzebuje trwałego miejsca na SQLite | średnia | nazwany wolumin Docker `/data`, użytkownik non-root |
++| W rejestrze ryzyk był błędny zwrot `Kajetan Engineer` | niska | zastąpiono poprawnym opisem właścicieli |
++| Port w konfiguracji i lokalnym skrypcie | zgodność | zachowano 8003 |
++| Repo zawiera źródłowe PDF | bez zmian | zachowano oryginalne pliki |
++
++## Pozostałe zadania
++
++1. Uruchomić nowy zestaw testów i sprawdzić build kontenera w środowisku zespołu; dołączyć logi.
++2. Zweryfikować Semgrep i Trivy, brak krytycznych podatności oraz generowanie SBOM w GitHub Actions.
++3. Ustalić politykę ważności abonamentów przy braku łączności.
++4. Zaprojektować i przetestować autoryzowaną synchronizację, idempotencję i trwałość zdarzeń.
++5. Wykonać audyt sekretów, odporności i wdrożenia Edge na M3–M5.
++
++**Nie wdrażać tego demonstratora do prawdziwego szlabanu ani nie używać prawdziwych numerów rejestracyjnych.**
+--- a/infrastructure/README.md
++++ b/infrastructure/README.md
+@@ -1,10 +1,3 @@
+-# M3 – infrastruktura (miejsce na implementację)
++# Infrastructure – SmartGate Edge–Cloud
+ 
+-W M2 brak konfiguracji produkcyjnego deploymentu. Zadania M3:
+-
+-- `edge-01` i `cloud-01`: dwie logicznie oddzielone VM/segmenty.
+-- Kanał zaufania dla deploy oraz telemetrii (VPN/TLS, uwierzytelnienie, least privilege).
+-- Przypięcie wydania do digestu SHA256 i zapis ostatniej działającej wersji.
+-- Healthcheck i rollback; pełna demonstracja i zapis wyników.
+-
+-Nie kopiować na serwer prywatnych kluczy ani nie publikować tokenów w repo.
++W M3: osobna VM Edge z FastAPI, SQLite i trwałą kolejką zdarzeń, oddzielna VM Cloud z API raportowania i monitoringiem. Kanał VPN/HTTPS, uwierzytelnienie i segmentacja, brak publicznego Docker API. Weryfikować synchronizację co minutę, wersjonowane snapshoty abonamentów i rollback last-known-good. **Na M2 to plan, nie wykonane VM.**
+--- a/monitoring/README.md
++++ b/monitoring/README.md
+@@ -1,3 +1,3 @@
+-# M4 – monitoring i ML (miejsce na implementację)
++# Monitoring SmartGate (M4)
+ 
+-Oczekiwane: centralna telemetria z (1) GitHub Actions/skanów i (2) Edge; dashboard, alert, syntetyczne dane, baseline, klasyfikator ML i mierzalne metryki jakości. Projekt opisany w `docs/M2/10-plan-AI-ML.md`.
++Dwa źródła: Edge (OPEN/DENY, czas odpowiedzi, zaległe raporty, dostępność) i GitHub Actions (skany, build, testy, release). Dashboard + alarm, syntetyczny dataset, porównanie prostych progów z ML i metryki precision/recall/F1. **Niezaimplementowane na M2.**
+--- a/run-local.sh
++++ b/run-local.sh
+@@ -8,6 +8,9 @@
+ PY="$VENV/bin/python"
+ HOST="127.0.0.1"
+ PORT=8003
++# Strictly local, temporary demo credential. Do not deploy with this value.
++export SMARTGATE_API_KEY="${SMARTGATE_API_KEY:-local-demo-only-change-me}"
++export SMARTGATE_DB_PATH="${SMARTGATE_DB_PATH:-$ROOT/.local/smartgate.db}"
+ 
+ usage() {
+   cat <<'HELP'
+@@ -61,6 +64,7 @@
+     echo 'BŁĄD: Port 8003 jest już zajęty. Zatrzymaj poprzednią instancję.' >&2
+     exit 1
+   fi
++  echo '==> Demo API key: local-demo-only-change-me (change for any shared environment)'
+   echo '==> Aplikacja: http://127.0.0.1:8003'
+   echo '==> Swagger UI: http://127.0.0.1:8003/docs'
+   echo '==> Health: http://127.0.0.1:8003/health'
+--- a/tests/test_app.py
++++ b/tests/test_app.py
+@@ -1,14 +1,74 @@
++import os
++import pytest
+ from fastapi.testclient import TestClient
+ from app.main import app
+ 
+-client = TestClient(app)
++
++@pytest.fixture
++def client(tmp_path, monkeypatch):
++    monkeypatch.setenv("SMARTGATE_DB_PATH", str(tmp_path / "smartgate-test.db"))
++    monkeypatch.setenv("SMARTGATE_API_KEY", "test-key-for-ci-only")
++    with TestClient(app) as c:
++        yield c
+ 
+ 
+-def test_health():
+-    response = client.get("/health")
+-    assert response.status_code == 200
+-    assert response.json()["status"] == "ok"
++def headers():
++    return {"X-API-Key": "test-key-for-ci-only"}
+ 
+ 
+-def test_root():
++def test_health(client):
++    r = client.get("/health")
++    assert r.status_code == 200
++    assert r.json()["status"] == "ok"
++
++
++def test_root(client):
+     assert client.get("/").json()["status"] == "prototype"
++
++
++def test_valid_permit_opens_simulated_barrier(client):
++    r = client.post("/api/v1/access/check", json={"plate": "SK 12345"}, headers=headers())
++    assert r.status_code == 200
++    assert r.json()["decision"] == "OPEN"
++    assert r.json()["simulated"] is True
++
++
++def test_inactive_permit_denied(client):
++    r = client.post("/api/v1/access/check", json={"plate": "KR 98765"}, headers=headers())
++    assert r.json()["decision"] == "DENY"
++    assert r.json()["reason"] == "inactive"
++
++
++def test_expired_permit_denied(client):
++    r = client.post("/api/v1/access/check", json={"plate": "SB 2026A"}, headers=headers())
++    assert r.json()["reason"] == "expired"
++
++
++def test_unknown_permit_denied(client):
++    r = client.post("/api/v1/access/check", json={"plate": "XX 12345"}, headers=headers())
++    assert r.json()["decision"] == "DENY"
++
++
++def test_invalid_plate_rejected(client):
++    r = client.post("/api/v1/access/check", json={"plate": "@!bad"}, headers=headers())
++    assert r.status_code == 422
++
++
++def test_no_api_key_rejected(client):
++    r = client.post("/api/v1/access/check", json={"plate": "SK 12345"})
++    assert r.status_code == 401
++
++
++def test_wrong_api_key_rejected(client):
++    r = client.post("/api/v1/access/check", json={"plate": "SK 12345"}, headers={"X-API-Key":"wrong"})
++    assert r.status_code == 401
++
++
++def test_summary_aggregated(client):
++    client.post("/api/v1/access/check", json={"plate": "SK 12345"}, headers=headers())
++    r = client.get("/api/v1/events/summary", headers=headers())
++    assert r.status_code == 200
++    assert r.json()["counts"]["OPEN"] == 1
++    assert r.json()["pending_sync"] == 1
++    assert r.json()["cloud_sync_implemented"] is False
++    assert "SK12345" not in r.text

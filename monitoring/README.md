@@ -1,3 +1,3 @@
-# M4 – monitoring i ML (miejsce na implementację)
+# Monitoring SmartGate (M4)
 
-Oczekiwane: centralna telemetria z (1) GitHub Actions/skanów i (2) Edge; dashboard, alert, syntetyczne dane, baseline, klasyfikator ML i mierzalne metryki jakości. Projekt opisany w `docs/M2/10-plan-AI-ML.md`.
+Dwa źródła: Edge (OPEN/DENY, czas odpowiedzi, zaległe raporty, dostępność) i GitHub Actions (skany, build, testy, release). Dashboard + alarm, syntetyczny dataset, porównanie prostych progów z ML i metryki precision/recall/F1. **Niezaimplementowane na M2.**

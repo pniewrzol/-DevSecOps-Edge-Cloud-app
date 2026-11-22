@@ -1,23 +1,19 @@
-# M2-09. Checklista przed 27.11.2026
+# M2-09. Checklista SmartGate – 27.11.2026
 
-**Zalecany termin udostępnienia materiałów:** 25.11.2026 (48 h przed spotkaniem; zalecenie, nie twardy termin zaliczenia).
+**Rekomendowane udostępnienie materiałów:** 25.11.2026 (48 godzin wcześniej).
 
-- [ ] Karta M1: pięć osób i role uzgodnione, link repo wpisany; nazwa zespołu i zgoda prowadzącego nadal do uzupełnienia.
-- [ ] Zgoda prowadzącego na odstępstwo od 4-osobowego składu jest potwierdzona.
-- [ ] Diagram architektury pokazuje CI, rejestr, Edge, Cloud, monitoring i AI/ML.
-- [ ] DFD zawiera źródła/magazyny danych, przepływy i granice zaufania.
-- [ ] Model STRIDE obejmuje wszystkie sześć kategorii zagrożeń i zabezpieczenia.
-- [ ] Rejestr wskazuje przynajmniej trzy główne ryzyka oraz działania ograniczające.
-- [ ] Backlog ma priorytety, właścicieli i kryteria akceptacji, sprinty M2–M7.
-- [ ] Wyjaśniono poświadczenia, uprawnienia CI i izolację runnera.
-- [ ] Potwierdzono sposób symulacji Edge i Cloud; decyzje zapisano w ADR.
-- [ ] PoC posiada rzeczywiste linki i logi *lub* jawnie opisano status i plan dokończenia.
-- [ ] Ustalono źródła danych i metryki AI/ML, z porównaniem do metody bazowej.
-- [ ] W repo brak sekretów i danych rzeczywistych.
-- [ ] Każdy członek zespołu zna swoją część prezentacji.
+- [x] Wskazano temat 04, nazwę SmartGate DevSecOps i pięć imion z rolami.
+- [x] Karta projektu opisuje przypadek użycia i odróżnia aplikację od procesu DevSecOps.
+- [x] Diagram zawiera Edge, Cloud, CI, GHCR, SQLite i monitoring.
+- [x] DFD zawiera magazyny, przepływy, granice zaufania i kierunki synchronizacji.
+- [x] STRIDE uwzględnia bezpieczeństwo parkingu i supply-chain.
+- [x] Backlog M2–M7 oraz kryteria odbioru są przygotowane.
+- [x] Historia: lokalne testy wcześniejszego szkieletu 2/2 PASS (22.11.2026).
+- [ ] Potwierdzono nazwę zespołu oraz formalny status pięciu osób.
+- [ ] Wspólny review/akceptacja przez wszystkie osoby.
+- [ ] Nowe testy SmartGate i kontenera z logami wykonane w środowisku zespołu.
+- [ ] GitHub Actions: zielony test/build/skany i dowody (wcześniejszy run był czerwony).
+- [ ] PoC bezpieczeństwa: kontrolowany failed scan i brak publikacji obrazu.
+- [ ] Przygotowano prezentację i każdy umie omówić swoją część.
 
-- [x] Lokalnie: 2/2 testy pytest zaliczone, serwer Uvicorn uruchomiony na 8003 (log 22.11.2026).
-
-## Kryteria "gotowe do przeglądu"
-
-Dokumenty renderują się, diagramy Mermaid nie mają błędów składni, linki repo działają, a niewykonane elementy są jawnie oznaczone. Status PoC należy przedstawić zgodnie ze stanem faktycznym.
+**Oznaczone `x` oznacza opracowany dokument/ustalony fakt; nie stanowi podpisu prowadzącego ani potwierdzenia wdrożenia.**

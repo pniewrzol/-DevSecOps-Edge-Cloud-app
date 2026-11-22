@@ -1,9 +1,10 @@
 FROM python:3.12-slim
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 SMARTGATE_DB_PATH=/data/smartgate.db
 WORKDIR /app
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt \
-    && useradd --system --uid 10001 --create-home appuser
+    && useradd --system --uid 10001 --create-home appuser \
+    && mkdir -p /data && chown 10001:10001 /data
 COPY app /app/app
 USER appuser
 EXPOSE 8003

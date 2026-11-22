@@ -1,39 +1,33 @@
-# M2-04. Model zagrożeń STRIDE
+# M2-04. Model zagrożeń STRIDE – SmartGate DevSecOps
 
-**Zakres analizy:** kod → CI → obraz OCI → Edge → monitoring/AI. **Metoda:** STRIDE na procesach, magazynach i przepływach DFD. Oceny wstępne i jakościowe; nie są wynikami pentestu.
+Analiza dotyczy zarówno aplikacji parkingowej, jak i łańcucha dostaw CI/CD. Oceny i kontrole są **planowane**; nie są wynikami testów penetracyjnych.
 
-## Aktywa i cele bezpieczeństwa
+## Aktywa
 
-- A1: integralność repozytorium i workflow; A2: poświadczenia CI/CD; A3: integralność obrazu OCI i SBOM; A4: dostępność aplikacji Edge; A5: wiarygodność śladów audytowych; A6: prywatność i integralność danych telemetrii.
+A1 integralność lokalnych uprawnień abonamentowych; A2 poprawność decyzji `OPEN/DENY`; A3 dostępność Edge offline; A4 prywatność danych parkingowych; A5 integralność zdarzeń i raportów; A6 bezpieczeństwo pipeline i podpisanych artefaktów; A7 sekrety API i kont technicznych.
 
-## Katalog zagrożeń
+| ID | STRIDE | Scenariusz / granica | Skutek | Kontrola | Dowód/test |
+|---|---|---|---|---|---|
+| SG-01 | Spoofing | klient podszywa się pod zaufany odczyt tablicy | nieuprawnione żądania | API key demo; docelowo mTLS i identyfikacja urządzeń | 401 bez klucza |
+| SG-02 | Tampering | zmiana uprawnienia w lokalnej SQLite | nieautoryzowane OPEN | ACL hosta, ograniczenie edycji, integralność snapshotów | test modyfikacji offline |
+| SG-03 | Repudiation | usunięcie historii wjazdów | brak audytu | trwałe zdarzenia i centralna kopia | audyt/identyfikatory |
+| SG-04 | Information Disclosure | ujawnienie tablic / abonamentów | naruszenie prywatności | tylko fikcyjne dane, TLS, retencja, RBAC | test anonimizacji |
+| SG-05 | Denial of Service | nadmiar żądań parkingowych lub Cloud offline | spadek dostępności | rate limit, lokalna baza, kolejka | test offline i przeciążenia |
+| SG-06 | Elevation of Privilege | podniesienie praw API do edycji abonamentów | fałszywy dostęp | brak publicznego endpointu admin, RBAC w Cloud | odmowa nieuprawnionej zmiany |
+| SG-07 | Spoofing | fałszywy raport Edge w centrali | fałszywe statystyki | podpis/identyfikacja urządzenia, nonce/ID | odrzucenie obcego urządzenia |
+| SG-08 | Tampering | ponowienie lub zmiana raportu | zawyżenie liczby wjazdów | event UUID, idempotencja | powtórny raport liczony raz |
+| SG-09 | Tampering | cofnięcie wersji abonamentów | cofnięty zakaz wjazdu | wersja monotoniczna + termin ważności | odrzucenie starego snapshotu |
+| CI-01 | Spoofing | przejęte konto GitHub lub nieuprawniony PR | kod obcy w release | MFA, branch protection, review | test reguł PR |
+| CI-02 | Information Disclosure | sekret w repo lub logu Actions | przejęcie usługi | secrets manager, Gitleaks, brak sekretów w PR | test kontrolny |
+| CI-03 | Tampering | niezweryfikowany obraz OCI | złośliwa aplikacja na Edge | Trivy, digest, SBOM i opcjonalny Cosign | blokada CRITICAL |
+| CI-04 | Elevation of Privilege | runner uzyskuje dostęp do hosta Edge | przejęcie hosta | hosted isolated runner, least privilege | audyt workflow |
+| CI-05 | Denial of Service | wadliwy deploy | brak usługi | healthcheck i rollback | test przywrócenia |
 
-| ID | STRIDE | Zasób / przepływ | Scenariusz | Skutek | Kontrola | Test weryfikujący |
-|---|---|---|---|---|---|---|
-| T01 | S – Spoofing | GitHub/F01 | przejęcie konta autora | nieautoryzowane zmiany | MFA, branch protection, review | próbka PR bez aprobaty nie trafia na main |
-| T02 | T – Tampering | CI/F02 | modyfikacja workflow lub wstrzyknięta akcja | obejście skanów | review workflow, pinning akcji SHA | zmiana workflow wymaga review |
-| T03 | R – Repudiation | pipeline/F04 | brak możliwości ustalenia autora deploy | brak audytu | SHA, run ID, kto zatwierdził, timestamp | raport audit trail |
-| T04 | I – Disclosure | sekrety/F06 | token w repo lub logach | kompromitacja deploymentu | Gitleaks, brak secretów na PR, maskowanie | kontrolowana próbka fałszywego sekretu |
-| T05 | D – DoS | Edge/F08 | wadliwy obraz zatrzymuje usługę | niedostępność | healthcheck, rollback | wdrożenie celowo niesprawnej wersji |
-| T06 | E – Elevation | runner CI | przejęcie runnera/roli | dostęp do registry/Edge | hosted izolowany runner, minimalne permissions, bez docker.sock | przegląd uprawnień workflow |
-| T07 | T – Tampering | obraz/F05/F07 | podmiana obrazu | obcy kod na Edge | digest, podpis (jeśli wdrożony), SBOM | odmowa obrazu ze złym digestem |
-| T08 | T – Tampering | SCA/build | zależność z krytyczną podatnością | znana ścieżka ataku | Trivy, fail pipeline CRITICAL | nieudany scan w odizolowanym teście |
-| T09 | S – Spoofing | deploy/F06 | fałszywa dyspozycja deploy | nieautoryzowane wydanie | uwierzytelnienie, dostęp tylko main, approval | żądanie bez uprawnień jest odrzucone |
-| T10 | I – Disclosure | telemetria/F09 | wyciek logów/endpointów | ekspozycja danych | VPN/TLS, auth, redakcja danych | endpoint niedostępny anonimowo |
-| T11 | T – Tampering | AI/F10 | fałszywy wynik skanu | błędna klasyfikacja alertów | walidacja źródła/schema, identyfikacja runu | odrzucenie błędnych rekordów |
-| T12 | D – DoS | monitoring/Cloud | przeciążenie telemetrią | utrata obserwowalności | limity, retencja, alert utraty scrape | symulacja niedostępności źródła |
+## Scenariusze wymagane na odbiór
 
-Legenda: S = podszywanie, T = modyfikacja, R = zaprzeczalność, I = ujawnienie informacji, D = odmowa usługi, E = eskalacja uprawnień.
+1. **Niedozwolony dostęp:** wywołanie `/api/v1/access/check` bez API key kończy się `401` (zabezpieczenie demonstracyjne, nie produkcyjne IAM).
+2. **Blokada CRITICAL:** testowy raport Trivy prowadzi do niepowodzenia CI przed publikacją obrazu (do wykonania).
+3. **Uszkodzona wersja:** nieudany healthcheck powoduje rollback z audytem (do wykonania M3–M5).
+4. **Offline:** Edge podejmuje lokalne decyzje i przechowuje raporty do wznowienia łączności (plan testów M3–M5).
 
-## Scenariusz incydentu do demonstracji
-
-**INC-01: blokada krytycznej podatności**: w kontrolowanym przebiegu dostarczany jest artefakt z wynikami skanu `CRITICAL`. Pipeline powinien zakończyć się niepowodzeniem, zapisać raport i nie uruchomić etapu publikacji/wdrożenia. Próbki testowe wyłącznie w odizolowanym laboratorium.
-
-**INC-02: wadliwa aktualizacja i rollback**: poprawnie zbudowana wersja z niespełnionym healthcheck ma spowodować powrót do poprzedniego działającego digestu, z logiem zdarzenia.
-
-## Ryzyka rezydualne / ograniczenia
-
-- SAST/SCA nie wykrywają wszystkich luk; brak CVE ≠ brak podatności.
-- Pojedyncza VM Edge nie gwarantuje HA; rollback usuwa wybrane awarie wdrożenia, nie awarie fizyczne hosta.
-- SBOM zapewnia identyfikację składników, ale samodzielnie nie uwierzytelnia obrazu.
-- Klasyfikator ML nie może samodzielnie zatwierdzać wdrożenia; polityki deterministyczne mają pierwszeństwo.
+**Ograniczenia:** znana tablica nie dowodzi tożsamości pojazdu, skany nie gwarantują braku luk, API key demo bez rotacji nie wystarcza do wdrożenia produkcyjnego, a SBOM nie jest podpisem integralności.

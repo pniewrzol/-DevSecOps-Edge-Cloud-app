@@ -1,49 +1,34 @@
-# M2-08. Proof of Concept i dowody wykonalności
+# M2-08. PoC SmartGate – plan i dowody
 
-**Cel M2:** pokazać wykonalność kluczowego etapu: automatyczny test → build obrazu → skan zależności/obrazu → bramka `CRITICAL` → publikacja do GHCR (tylko na zaufanym branchu). **Status:** testy lokalne pytest 2/2 PASS i start serwera 8003 potwierdzone logiem 22.11.2026; CI/GHCR i skany NIEZWERYFIKOWANE. [Protokół](13-testy-lokalne-2026-11-22.md).
+## Stan aktualny
 
-## Wymagania PoC
+- 22.11.2026: **historyczny szkielet** FastAPI przeszedł lokalnie 2/2 testów, 3 warnings, Uvicorn na porcie 8003 ([protokół](13-testy-lokalne-2026-11-22.md)). To nie są testy logiki SmartGate.
+- GitHub Actions run `45059847478` dla commitu `0c52d7d`: FAILED w `Tests`, Semgrep/Trivy/build/publish pominięte – <https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app/actions/runs/45059847478>.
+- Zmieniono workflow na `python -m pytest -q` jako potencjalne rozwiązanie błędu importu z katalogu root; **wymaga sprawdzenia w CI**.
+- Nowy symulator SmartGate implementuje lokalne decyzje, SQLite, zdarzenia i demonstracyjne uwierzytelnienie API key. Nie realizuje jeszcze synchronizacji Cloud ani automatycznego deploy.
 
-- Repozytorium z włączonym GitHub Actions.
-- Uprawnienia `GITHUB_TOKEN` do zapisu pakietów tylko dla joba publikacji w `main`; PR bez poświadczeń deploymentowych.
-- Dockerfile aplikacji i co najmniej jeden test pytest.
-- Skan kodu (Semgrep) i zależności (Trivy fs), skan obrazu (Trivy image) z bramką critical.
-- Artefakt SBOM; publikacja obrazu po przejściu kontroli.
-
-## Kroki lokalne
+## Testy do wykonania na nowym kodzie
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements-dev.txt
-pytest -q
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8003
-# w osobnej konsoli
-curl -f http://127.0.0.1:8003/health
+./run-local.sh test
+./run-local.sh start
+# drugi terminal
+curl http://127.0.0.1:8003/health
+curl -X POST http://127.0.0.1:8003/api/v1/access/check \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: local-demo-only-change-me' \
+  -d '{"plate":"SK 12345"}'
 ```
 
-## Kroki CI
+## Dowody M2 – uzupełnić po uruchomieniu
 
-1. Wypchnąć na własny branch i otworzyć PR: zweryfikować testy i skanowanie bez publikacji do registry.
-2. Po review wykonać merge do `main`: zweryfikować raporty, SBOM i opublikowany obraz w GHCR.
-3. Przygotować **kontrolowany test blokady** (np. odrębny branch i reguła testowa / skan podatnego artefaktu z potwierdzonym wynikiem CRITICAL). Nie wprowadzać niebezpiecznego komponentu do wydania głównego.
-4. Zweryfikować, że pipeline z CRITICAL nie uruchamia kroku publikacji.
+| ID | Dowód | Status |
+|---|---|---|
+| E01 | Testy nowego SmartGate pytest | WYMAGA POTWIERDZENIA / LOGU |
+| E02 | API: aktywny abonament daje OPEN | WYMAGA POTWIERDZENIA / LOGU |
+| E03 | API: brak klucza daje 401 | WYMAGA POTWIERDZENIA / LOGU |
+| E04 | CI: green build/test, skany Semgrep i Trivy | WYMAGA RUNU |
+| E05 | CI: SBOM + GHCR | WYMAGA RUNU |
+| E06 | Kontrolowana blokada CRITICAL | WYMAGA RUNU |
 
-**Uwaga:** demo włączenia realnego `CRITICAL` może zależeć od aktualnej bazy CVE; można dodatkowo sprawdzić logikę policy gate przez kontrolowany fixture raportu, ale należy wyraźnie oznaczyć symulację.
-
-## Formularz dowodów (uzupełnić po wykonaniu)
-
-| ID | Dowód | Link/ścieżka | Wynik | Data |
-|---|---|---|---|---|
-| E01 | Run udanego PR: test + skany | [DO UZUPEŁNIENIA] | NIE WYKONANO | – |
-| E02 | Run main i publikacja GHCR | [DO UZUPEŁNIENIA] | NIE WYKONANO | – |
-| E03 | SBOM z poprawnego pipeline | [DO UZUPEŁNIENIA] | NIE WYKONANO | – |
-| E04 | Run z zablokowanym CRITICAL | [DO UZUPEŁNIENIA] | NIE WYKONANO | – |
-| E05 | Log decyzji policy gate | [DO UZUPEŁNIENIA] | NIE WYKONANO | – |
-
-## Oczekiwane kryteria sukcesu
-
-- Przynajmniej jeden autentyczny zielony run i jeden kontrolowany odrzucony run (jeśli możliwe przed M2).
-- Brak sekretów w repozytorium i outputach.
-- Ślad łączący obraz OCI z SHA commitu oraz wynikami testów.
-- Wyraźna informacja: deployment do Edge i rollback będą dopiero w M3/M5.
+Nie podpisywać jako wykonane dowodów, których nie ma. Zamieścić ID joba, SHA, logi/zrzuty i daty.

@@ -1,33 +1,28 @@
-# M2-10. Plan komponentu AI/ML i monitoringu
+# M2-10. Plan AI/ML i monitoringu SmartGate
 
-**Cel:** klasyfikacja alarmów CI/CD na `routine`, `security`, `quality`, `deployment_failure` oraz sygnalizowanie zdarzeń wymagających reakcji. Model nie steruje polityką publikacji — blokady CI są deterministyczne.
+**Cel:** wykrywanie nietypowych zdarzeń po wdrożeniu oraz problemów jakości CI/CD. **AI nie podejmuje decyzji `OPEN/DENY` ani nie obchodzi security gate.** W M2 jest to koncepcja, nie wytrenowany model.
 
-## Źródła danych (minimum dwa)
+## Dwa niezależne źródła telemetrii
 
-1. GitHub Actions / skanery – `pipeline_result`, `tests_failed`, `critical_cves`, `high_cves`, `build_duration_seconds`.
-2. Edge / Prometheus – `healthcheck_ok`, `http_5xx_rate`, `deployment_duration`, `rollback_required`.
+1. **SmartGate Edge:** liczba decyzji OPEN/DENY/min, wskaźnik odmów, czas odpowiedzi, status lokalnej kolejki, zaległe raporty, dostępność Cloud, wersja aplikacji.
+2. **GitHub Actions/DevSecOps:** status testów i skanów, CRITICAL/HIGH, czas budowania, SHA wersji, rollback.
 
-## Dane
+## Proponowana analiza
 
-W M4: oznaczony, syntetyczny zbiór o klasach normal/security/quality/deployment_failure. Podać liczbę próbek, sposób generacji, udział klas i ograniczenia. Separować trening i test; nie wykorzystywać tego samego przebiegu zdarzenia po obu stronach podziału.
+- **Zdarzenie przykładowe:** po wydaniu nowej wersji skacze liczba odmów lub opóźnienie API; dodatkowo rośnie backlog raportów.
+- **Baseline:** jawne reguły, np. >70% odmów w oknie 5 min i co najmniej 20 zdarzeń lub brak synchronizacji >180 s.
+- **ML:** IsolationForest dla anomalii numerycznych albo nadzorowany klasyfikator (np. RandomForest) przy wystarczającym zbiorze oznaczonym.
+- **Ocena:** precision, recall, F1 oraz false positive rate na odrębnym zbiorze testowym; porównać **te same** dane dla baseline i ML.
+- **Dane:** wyłącznie syntetyczne, z oznaczeniem okien normalnych oraz incydentów; w metodologii podać seed, sposób generacji i podział, unikając przecieku danych między treningiem/testem.
 
-## Metody
+## Oczekiwane dowody M4
 
-- Baseline: ręczne reguły, np. `critical_cves > 0 → security`, `tests_failed > 0 → quality`, `healthcheck_ok=0 → deployment_failure`.
-- ML: prosty `DecisionTreeClassifier` albo `RandomForestClassifier` z `scikit-learn`.
-- Miary: `precision`, `recall`, `macro-F1`, macierz pomyłek, liczba false positives; zestawić baseline i ML na tym samym teście.
-- Monitorować opóźnienie klasyfikacji i wolumen zdarzeń, jeśli dane pozwolą.
+| Dowód | Status |
+|---|---|
+| Telemetria Edge + CI z 2 źródeł | DO WYKONANIA |
+| Jeden syntetyczny incydent i alert | DO WYKONANIA |
+| Dataset train/test i opis etykiet | DO WYKONANIA |
+| Wyniki baseline i ML (precision/recall/F1) | DO ZMIERZENIA |
+| Dashboard lub raport wizualny | DO WYKONANIA |
 
-## Uzasadnienie
-
-Pipeline generuje sygnały z różnych etapów; klasyfikator może nadać alertom wspólną kategorię oraz priorytet dla operatora. Na małych danych syntetycznych możliwe jest zawyżenie jakości — koniecznie pokazać ograniczenia i bazowe reguły.
-
-## Wyniki do uzupełnienia przy M4
-
-| Parametr | Baseline | ML |
-|---|---|---|
-| Liczba próbek testowych | [DO ZMIERZENIA] | [DO ZMIERZENIA] |
-| Precision (macro) | [DO ZMIERZENIA] | [DO ZMIERZENIA] |
-| Recall (macro) | [DO ZMIERZENIA] | [DO ZMIERZENIA] |
-| F1 (macro) | [DO ZMIERZENIA] | [DO ZMIERZENIA] |
-| False positives | [DO ZMIERZENIA] | [DO ZMIERZENIA] |
+**Ograniczenie:** mały sztuczny dataset może zawyżać wyniki modelu, co musi zostać omówione w raporcie.

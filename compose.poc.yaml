@@ -1,8 +1,13 @@
 services:
-  edge-demo:
+  smartgate-edge:
     build: .
+    environment:
+      SMARTGATE_DB_PATH: /data/smartgate.db
+      SMARTGATE_API_KEY: ${SMARTGATE_API_KEY:?Set SMARTGATE_API_KEY in environment; no secrets in git}
     ports:
       - "127.0.0.1:8003:8003"
+    volumes:
+      - smartgate-data:/data
     read_only: true
     tmpfs:
       - /tmp
@@ -11,3 +16,5 @@ services:
     cap_drop:
       - ALL
     restart: unless-stopped
+volumes:
+  smartgate-data:

@@ -1,27 +1,25 @@
-# M2-12. Scenariusz omówienia na spotkaniu
+# M2-12. Prezentacja SmartGate DevSecOps (propozycja 7–10 min)
 
-**Propozycja prezentacji około 7–10 minut; nie jest to limit narzucony przez prowadzącego.**
+1. **Patryk (1–2 min):** cel tematu 04, przykład szlabanu, zakres MVP vs plan M3–M4, diagram Edge–Cloud.
+2. **Kamil (1 min):** lokalna decyzja SQLite, tryb offline i plan synchronizacji / rollbacku.
+3. **Michał (2 min):** GitHub Actions, pytest, skanery, GHCR, co już działa i co należy naprawić.
+4. **Kajetan (1–2 min):** STRIDE – fałszywy klient, modyfikacja abonamentów, podatny obraz, zabezpieczenia.
+5. **Bartek (1 min):** dwa źródła telemetrii, anomalie, baseline i metryka F1.
+6. **Patryk (1 min):** podsumowanie, backlog, termin następnego etapu.
 
-1. **1 min – Problem i MVP:** ryzyko manualnych wdrożeń, co system automatyzuje.
-2. **2 min – Diagram:** GitHub/CI, GHCR, Edge, Cloud, monitoring; zaznaczyć granice zaufania.
-3. **1–2 min – DFD:** przykład F01→F05→F07→F09; sekrety nigdy nie trafiają do kodu ani logów.
-4. **2 min – STRIDE:** omówić T04, T07, T05 i zabezpieczenia/plan testów.
-5. **1 min – Backlog:** najbliższe kamienie milowe M3 i M4 (tylko dzień odstępu).
-6. **1–2 min – PoC:** pokazać prawdziwy run Actions i raport Trivy; jeśli brak runu, jawnie powiedzieć, że nie wykonano.
+## Demo
 
-## Proponowany podział omówienia
+- Pokazać `/health` i `/docs` na porcie 8003.
+- Sprawdzić fikcyjną tablicę `SK 12345` → `OPEN`, `KR 98765` → `DENY`.
+- Sprawdzić brak API key → `401`.
+- Pokazać prawdziwy GitHub Actions i odróżnić zrealizowane kontrole od planowanych.
 
-- **Patryk:** cel, MVP, diagram i DFD.
-- **Michał:** pipeline CI/CD, testy, publikacja GHCR.
-- **Kamil:** Docker i plan infrastruktury Edge/Cloud, wdrożenie oraz rollback.
-- **Kajetan:** model zagrożeń, ryzyka i kontrola bezpieczeństwa.
-- **Bartek:** telemetria i metryki jakości AI/ML.
+## Pytania
 
-## Możliwe pytania prowadzącego
+**Czy to jest tylko projekt szlabanu?** Nie. Szlaban to przypadek użycia do weryfikacji DevSecOps, bezpieczeństwa dostaw i Edge–Cloud.
 
-- **Co w projekcie jest hybrydowe?** Dwie logicznie odseparowane strefy Edge i Cloud oraz usługi SaaS CI.
-- **Czy SBOM zapewnia integralność?** Nie; do integralności służą digesty/podpisy i kontrola dystrybucji artefaktów.
-- **Co blokuje krytyczne CVE?** Twarda bramka skanera w CI przed push/deploy.
-- **Jak unikniecie wycieku tokenu?** Least privilege, brak sekretów w PR, kontrola logów i repo.
-- **Czy AI decyduje o wdrożeniu?** Nie. AI klasyfikuje alerty; security gate jest deterministyczny.
-- **Jak działa rollback?** Po nieudanym healthcheck automatyczny powrót do ostatniego działającego digestu z audytem.
+**Czy system działa offline?** Lokalna baza obsługuje decyzję, ale symulacja awarii i synchronizacji kolejki wymaga implementacji M3.
+
+**Czy AI otwiera bramę?** Nie. Decyzja jest deterministyczna, AI klasyfikuje alarmy i anomalie.
+
+**Czy SBOM zabezpiecza integralność?** Sam SBOM nie; stosuje się digest i ewentualny podpis.

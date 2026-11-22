@@ -1,80 +1,70 @@
-# M1 – Karta projektu (temat nr 04)
+# M1 – Karta projektu: SmartGate DevSecOps
 
-**Status:** wersja robocza do zatwierdzenia przez zespół i prowadzącego.  
-**Przedmiot:** Projekt Zespołowy: Bezpieczna Infrastruktura Hybrydowa z AI (WSTI, 2026/2027).  
-**Spotkanie M1:** 16.10.2026, 19:15–20:45.  
-**Temat:** 04. DevSecOps: bezpieczne wdrażanie aplikacji Edge–Cloud.  
-**Nazwa zespołu:** [UZUPEŁNIĆ].  
-**Repozytorium GitHub:** https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app.
+**Przedmiot:** Projekt Zespołowy: Bezpieczna Infrastruktura Hybrydowa z AI, WSTI 2026/2027.
+**Temat katalogowy:** nr 04 – DevSecOps: bezpieczne wdrażanie aplikacji Edge–Cloud.
+**Nazwa własna:** SmartGate DevSecOps.
+**Zespół:** [NAZWA DO UZGODNIENIA].
+**Repo:** https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app
+**Liczebność:** 5 (według zespołu dopuszczalne maksimum; zatwierdzenie przez prowadzącego [POTWIERDZIĆ]).
 
-> **Uwaga organizacyjna:** dokumenty przedmiotu opisują zespoły **czteroosobowe**, natomiast projekt ten zakłada **5 osób na prośbę zespołu**. Zmianę liczebności należy zatwierdzić z prowadzącym. Nie wpisywać, że zgodę już uzyskano.
+## Role i odpowiedzialności
 
-## Skład pięcioosobowego zespołu
+| Osoba | Rola | Odpowiedzialność |
+|---|---|---|
+| Patryk | Lider / architekt | architektura, backlog, DFD, decyzje ADR, integracja i przeglądy |
+| Michał | Cloud / DevOps | CI/CD, GitHub Actions, skanowanie, artefakty GHCR |
+| Kamil | Cloud / DevOps | Docker, Edge/Cloud VM, wdrożenia, rollback, synchronizacja |
+| Kajetan | Security Engineer | STRIDE, rejestr ryzyk, security gates, uprawnienia i testy bezpieczeństwa |
+| Bartek | AI / Monitoring | zbieranie telemetrii, alerty, dashboard, eksperyment ML i ewaluacja |
 
-| Nr | Imię | Rola | Zakres odpowiedzialności | Status |
-|---|---|---|---|---|
-| 1 | Patryk | Lider / architekt | Karta projektu, diagramy, backlog, koordynacja, integracja i przeglądy | Uzgodnione w zespole |
-| 2 | Michał | Cloud / DevOps | GitHub Actions, pipeline CI/CD, publikacja artefaktów, konfiguracja Cloud/Edge i wdrożenia (wspólnie z Kamilem) | Uzgodnione w zespole |
-| 3 | Kamil | Cloud / DevOps | Docker, GHCR, środowiska Edge/Cloud, automatyzacja wdrożeń i rollback (wspólnie z Michałem) | Uzgodnione w zespole |
-| 4 | Kajetan | Security Engineer | STRIDE, rejestr ryzyk, zabezpieczenia, SAST/SCA, kontrola uprawnień i testy bezpieczeństwa | Uzgodnione w zespole |
-| 5 | Bartek | AI / Monitoring | Metryki z wielu źródeł, dashboard, alerty, model ML i metryki jego jakości | Uzgodnione w zespole |
+## Problem
 
-Prowadzący proponuje cztery role. W pięcioosobowym zespole rolę **Cloud / DevOps** współdzielą **Michał i Kamil**, zachowując cztery obszary odpowiedzialności. Rozdział konkretnych zadań między nimi ustalono w backlogu; formalna zgoda prowadzącego na pięć osób nadal wymaga potwierdzenia.
+Lokalna kontrola dostępu parkingowego musi podejmować decyzje także przy awarii Internetu. Jednocześnie aktualizacje oprogramowania Edge nie powinny wprowadzać podatności ani przerywać dostępności usługi. Niezabezpieczony proces dystrybucji mógłby spowodować błędne decyzje lub zmianę uprawnień.
 
-## Problem biznesowy i cel
+## Cel i odbiorca
 
-Ręczne dostarczanie aplikacji na węzły brzegowe rodzi ryzyko wdrożenia obrazu zawierającego podatności, niespójności wersji i długiego przywracania usługi. Celem jest powtarzalny i kontrolowany proces od commitu do wdrożenia kontenera w symulowanym Edge–Cloud z kontrolami bezpieczeństwa, audytem i rollbackiem.
+Zaprojektować oraz udokumentować **bezpieczny pipeline DevSecOps** dostarczający kontenerową aplikację SmartGate do symulowanego Edge, z centralnym Cloud monitoringowym, skanowaniem SAST/SCA/OCI, SBOM, kontrolą publikacji, rollbackiem, audytem i mierzalnym komponentem AI/ML. Odbiorcą jest administrator sieci parkingów/oddziałów (scenariusz laboratoryjny).
 
-**Odbiorca:** zespół programistów i administratorów rozproszonych wdrożeń aplikacji (scenariusz laboratoryjny).  
-**Środowisko:** lokalna wirtualizacja (propozycja: dwie VM Debian na Proxmox), GitHub Actions i GHCR; brak obowiązku komercyjnej chmury.
+## MVP aplikacji SmartGate
 
-## Zakres minimalnego działającego prototypu (MVP)
+1. Fikcyjna tablica z pliku/żądania HTTP → normalizacja i walidacja.
+2. Lokalna baza SQLite abonamentów → deterministyczne `OPEN`/`DENY` (bez fizycznego sterowania).
+3. Zdarzenia w lokalnej kolejce i docelowy raport do Cloud co minutę (z obsługą ponowień).
+4. Praca offline oraz kontrolowana aktualizacja uprawnień po odzyskaniu łączności.
+5. Oddzielne strefy Edge/Cloud, uwierzytelnione API, ochrona transmisji i logi bez sekretów.
 
-1. Automatyczny build, testy i wdrożenie kontenerowej aplikacji.
-2. SAST/SCA, skan obrazu, blokada krytycznych podatności.
-3. SBOM **lub** podpis/manifest artefaktu – plan: SBOM i digest, podpis Cosign jako uzupełnienie.
-4. Powtarzalny rollback, ślady audytowe, kontrolowana nieudana kompilacja lub skan.
-5. Brak sekretów w repo, minimalne uprawnienia pipeline, izolacja runnera.
-6. Logicznie oddzielone Edge i Cloud, ochrona transmisji, uwierzytelnianie i autoryzacja.
-7. Centralna telemetria z więcej niż jednego źródła, alarm/incydent i **mierzalny** komponent AI/ML.
+## MVP DevSecOps (nadrzędny cel tematu nr 04)
 
-**Poza MVP:** Kubernetes, HA, komercyjna chmura, duży zakres IaC, autonomiczne reakcje ML.
+Automatyczny build, testy, SAST/SCA/skan obrazu, blokada CRITICAL, SBOM lub podpis/manifest, bezpieczne publikowanie GHCR, wdrożenie do Edge, healthcheck, rollback, ślady audytowe. Minimalne uprawnienia i izolacja runnerów. Monitoring z dwóch źródeł oraz AI/ML porównane z baseline.
 
-## Przyjęte do konsultacji technologie
+## Architektura i technologie (propozycja)
 
-GitHub, GitHub Actions, GHCR, Docker/Compose, FastAPI, pytest, Semgrep, Trivy, Gitleaks, Syft, Prometheus, Grafana, Python/scikit-learn; szczegóły i zagrożenia: [architektura](../M2/02-architektura.md) i [ADR](../M2/07-decyzje-ADR.md). Te wybory są **propozycją**, nie wymogiem WSTI.
-
-## Trzy najważniejsze ryzyka
-
-| Ryzyko | Wstępna redukcja |
-|---|---|
-| Ujawnienie tokenu lub sekretu CI | Least privilege, brak sekretów w repo i niezaufanych PR, skanowanie sekretów |
-| Publikacja i wdrożenie podatnego/zmodyfikowanego obrazu | SAST/SCA, Trivy, kontrola digestu i pochodzenia, bramka blokująca |
-| Utrata dostępności Edge po aktualizacji | Healthcheck, last-known-good release, rollback, log audytowy |
-
-Pełna analiza: [rejestr zagrożeń](../M2/04-model-zagrozen-STRIDE.md) i [rejestr ryzyk](../M2/05-rejestr-ryzyk.md).
-
-## Plan źródeł danych i uproszczony przepływ
+FastAPI + Python, SQLite (Edge), GitHub Actions, Docker/Compose, GHCR, Semgrep, Trivy, SBOM, Prometheus, Grafana i scikit-learn. Edge jako VM i Cloud jako druga odrębna VM na Proxmox – dopuszczona symulacja laboratoryjna.
 
 ```mermaid
 flowchart LR
-  U[Programista] --> R[GitHub Repo]
-  R --> CI[CI: testy i skany]
-  CI --> REG[GHCR: obraz + SBOM]
-  REG --> E[Edge: aplikacja]
-  E --> M[Cloud: monitoring]
-  CI --> M
-  M --> ML[AI/ML: klasyfikacja alertów]
+  DRIVER[Symulowany pojazd] --> EDGE[Edge: SmartGate + lokalne SQLite]
+  EDGE -->|Raporty, ponowienia| CLOUD[Cloud: raporty i monitoring]
+  CLOUD -->|Wersjonowane abonamenty| EDGE
+  DEV[GitHub Repo] --> CI[Actions: test + scan + SBOM]
+  CI --> REG[GHCR]
+  REG -->|Kontrolowany deploy| EDGE
+  CI -->|Metryki pipeline| CLOUD
+  CLOUD --> ML[AI/ML: alerty]
 ```
 
-Źródła danych: (1) wyniki testów/skanów i statusy CI, (2) metryki/logi aplikacji Edge. Wyłącznie dane syntetyczne/testowe.
+## Trzy ryzyka kluczowe
 
-## Kryteria ukończenia M1
+1. Nieautoryzowana modyfikacja lokalnych abonamentów i błędne `OPEN` → autoryzacja, integralność bazy, przegląd zmian i log zdarzeń.
+2. Wyciek sekretów/podatny obraz w pipeline → least privilege, skany, security gate, SBOM/digest.
+3. Nieudana aktualizacja lub przerwa łączności → healthcheck, rollback, lokalne decyzje oraz trwała kolejka raportów.
 
-- [ ] Zatwierdzone 5 osób przez prowadzącego (odstępstwo od zasad 4-osobowych).
-- [ ] Nazwa zespołu uzupełniona; **imiona i role uzgodnione (5 osób)**.
-- [x] Repozytorium utworzone i adres podany.
-- [ ] Problem, cel, odbiorca, MVP, technologie, ryzyka i przepływ omówione.
-- [ ] Każdy członek ma ustalony wkład i pierwsze zadanie w backlogu.
+## Status / kryteria M1
 
-**Stan M1 nie został zweryfikowany; nie oznaczać jako zaliczony bez potwierdzenia.**
+- [x] Temat 04, nazwa SmartGate DevSecOps, role pięciu osób i adres repo ustalone.
+- [x] Problem, cel, zakres MVP i diagram wstępny opisane.
+- [ ] Pełne nazwiska/nazwa zespołu, jeśli wymagane.
+- [ ] Potwierdzenie przez prowadzącego dopuszczenia pięciu osób zapisane jako dowód.
+- [ ] Potwierdzenie akceptacji karty M1 przez zespół/prowadzącego.
+
+Żaden nieuzyskany podpis lub zgoda nie jest tutaj deklarowany.

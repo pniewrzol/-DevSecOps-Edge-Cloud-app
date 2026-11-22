@@ -8,6 +8,9 @@ VENV="$ROOT/.venv"
 PY="$VENV/bin/python"
 HOST="127.0.0.1"
 PORT=8003
+# Strictly local, temporary demo credential. Do not deploy with this value.
+export SMARTGATE_API_KEY="${SMARTGATE_API_KEY:-local-demo-only-change-me}"
+export SMARTGATE_DB_PATH="${SMARTGATE_DB_PATH:-$ROOT/.local/smartgate.db}"
 
 usage() {
   cat <<'HELP'
@@ -61,6 +64,7 @@ PY
     echo 'BŁĄD: Port 8003 jest już zajęty. Zatrzymaj poprzednią instancję.' >&2
     exit 1
   fi
+  echo '==> Demo API key: local-demo-only-change-me (change for any shared environment)'
   echo '==> Aplikacja: http://127.0.0.1:8003'
   echo '==> Swagger UI: http://127.0.0.1:8003/docs'
   echo '==> Health: http://127.0.0.1:8003/health'

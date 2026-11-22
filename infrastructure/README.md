@@ -1,10 +1,3 @@
-# M3 – infrastruktura (miejsce na implementację)
+# Infrastructure – SmartGate Edge–Cloud
 
-W M2 brak konfiguracji produkcyjnego deploymentu. Zadania M3:
-
-- `edge-01` i `cloud-01`: dwie logicznie oddzielone VM/segmenty.
-- Kanał zaufania dla deploy oraz telemetrii (VPN/TLS, uwierzytelnienie, least privilege).
-- Przypięcie wydania do digestu SHA256 i zapis ostatniej działającej wersji.
-- Healthcheck i rollback; pełna demonstracja i zapis wyników.
-
-Nie kopiować na serwer prywatnych kluczy ani nie publikować tokenów w repo.
+W M3: osobna VM Edge z FastAPI, SQLite i trwałą kolejką zdarzeń, oddzielna VM Cloud z API raportowania i monitoringiem. Kanał VPN/HTTPS, uwierzytelnienie i segmentacja, brak publicznego Docker API. Weryfikować synchronizację co minutę, wersjonowane snapshoty abonamentów i rollback last-known-good. **Na M2 to plan, nie wykonane VM.**

@@ -1,8 +1,8 @@
 # M1 – Role, komunikacja i ślad wkładu (5 osób)
 
-**Uzgodniony podział zespołu (22.11.2026):** Patryk – lider / architekt; Michał i Kamil – Cloud / DevOps; Kajetan – Security Engineer; Bartek – AI / Monitoring.
+**Uzgodniony podział zespołu (22.11.2026) – projekt SmartGate DevSecOps:** Patryk – lider / architekt; Michał i Kamil – Cloud / DevOps; Kajetan – Security Engineer; Bartek – AI / Monitoring.
 
-> Materiały WSTI przewidują 4 osoby. Skład pięcioosobowy wymaga potwierdzenia przez prowadzącego. Współdzielenie roli Cloud / DevOps nie oznacza dodatkowej piątej roli.
+> Materiały WSTI planują cztery osoby; zespół otrzymał informację o dopuszczalnym maksimum pięciu osób. Formalną zgodę/status warto odnotować. Współdzielenie roli Cloud / DevOps nie oznacza dodatkowej piątej roli.
 
 ## Macierz RACI
 
@@ -12,11 +12,11 @@ R = realizuje, A = odpowiada za wynik, C = konsultowany, I = informowany. W każ
 |---|---|---|---|---|---|
 | Karta projektu, backlog i sprint review | A/R | C | C | C | C |
 | Architektura logiczna i DFD | A/R | C | C | C | C |
-| CI/CD, GitHub Actions, security gates | C | A/R | R | R | I |
+| CI/CD SmartGate, GitHub Actions, security gates | C | A/R | R | R | I |
 | Obraz OCI, GHCR, SBOM i Docker | C | R | A/R | C | I |
-| VM Edge/Cloud, sieć, deployment i rollback | C | R | A/R | C | I |
+| VM Edge/Cloud, lokalna baza, sieć, deployment i rollback | C | R | A/R | C | I |
 | Model zagrożeń STRIDE, IAM, ryzyka | C | C | C | A/R | C |
-| Telemetria, dashboard i AI/ML | C | C | C | C | A/R |
+| Telemetria SmartGate/CI, dashboard i AI/ML | C | C | C | C | A/R |
 | Integracja końcowa i demonstracja | A/R | R | R | R | R |
 
 ## Zasady współpracy

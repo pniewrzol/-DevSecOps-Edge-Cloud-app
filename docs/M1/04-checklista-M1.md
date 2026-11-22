@@ -1,13 +1,13 @@
-# M1 – Checklista odbioru
+# M1 – Checklista SmartGate DevSecOps
 
-- [ ] Numer 04 i tytuł tematu poprawne.
-- [ ] Potwierdzono dopuszczenie **5 osób** (plan WSTI mówi o 4).
-- [x] Wpisano 5 imion i przypisano role oraz zakresy prac; nazwiska (jeśli wymagane) do uzupełnienia.
-- [ ] Nazwa zespołu do uzupełnienia; adres repozytorium wpisany: https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app.
-- [ ] Karta zawiera problem, cel, odbiorcę, zakres MVP i technologie.
-- [ ] Podano trzy główne ryzyka oraz wstępne zabezpieczenia.
-- [ ] Ujęto przynajmniej uproszczony przepływ danych.
-- [ ] Ustalono sprint, komunikację i zadania na M2.
-- [ ] Zarejestrowano źródła wymagań.
+- [x] Wybrano temat katalogowy 04 i nazwę własną SmartGate DevSecOps.
+- [x] Zapisano pięć imion i cztery role (Michał/Kamil współdzielą Cloud/DevOps).
+- [x] Utworzono repozytorium GitHub i wskazano URL.
+- [x] Opisano problem, odbiorcę, cel, MVP, propozycję technologii.
+- [x] Przedstawiono schemat lokalny Edge–Cloud i wstępne trzy ryzyka.
+- [ ] Potwierdzono/odnotowano zgodę prowadzącego na skład 5 osób, jeżeli jest wymagana.
+- [ ] Uzupełniono nazwę zespołu / nazwiska, jeśli wymagane.
+- [ ] Zespół zaakceptował aktualną kartę projektu i zapisał dowód przeglądu.
+- [ ] Powiązano GitHub Issues z właścicielami i rozpoczętym sprintem.
 
-**Nie odznaczać bez potwierdzenia faktów.**
+"x" oznacza obecność elementu w artefakcie lub fakt znany z rozmowy, a nie formalne zaliczenie M1.
