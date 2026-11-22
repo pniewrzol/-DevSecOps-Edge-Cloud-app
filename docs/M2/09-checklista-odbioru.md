@@ -19,3 +19,9 @@
 ## Kryteria "gotowe do przeglądu"
 
 Dokumenty renderują się, diagramy Mermaid nie mają błędów składni, linki repo działają, a niewykonane elementy są jawnie oznaczone. Status PoC należy przedstawić zgodnie ze stanem faktycznym.
+
+## Potwierdzone wyniki lokalne – 22.11.2026
+
+- [x] Dwa testy pytest zaliczone.
+- [x] Uvicorn uruchomiony na porcie 8003.
+- [ ] Skanowanie CI/CD i publikacja GHCR do potwierdzenia.

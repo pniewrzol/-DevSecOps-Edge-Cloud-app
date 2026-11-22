@@ -72,9 +72,9 @@ python -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements-dev.txt
 pytest -q
-uvicorn app.main:app --host 127.0.0.1 --port 8000
+uvicorn app.main:app --host 127.0.0.1 --port 8003
 # w osobnym terminalu:
-curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8003/health
 ```
 
 CI i GHCR wymagają konfiguracji repozytorium/permissions. Testy na żywym GitHub i Edge nie zostały wykonane w trakcie przygotowania pakietu.
@@ -86,3 +86,21 @@ CI i GHCR wymagają konfiguracji repozytorium/permissions. Testy na żywym GitHu
 - **Etapy późniejsze:** automatyczny Edge deploy i rollback oraz rzeczywisty monitoring i AI/ML.
 
 Testy wykonywać wyłącznie na własnej odizolowanej infrastrukturze i danych syntetycznych.
+
+
+## Zweryfikowane testy lokalne – 22.11.2026
+
+- **pytest:** 2/2 PASS, 3 ostrzeżenia deprecacyjne.
+- **FastAPI:** poprawne uruchomienie na `127.0.0.1:8003`.
+- **GitHub Actions / Trivy / GHCR / Edge:** do weryfikacji.
+- [Protokół testowy M2](docs/M2/13-testy-lokalne-2026-11-22.md).
+
+### Uruchomienie
+
+```bash
+./run-local.sh
+```
+
+- API: http://127.0.0.1:8003
+- Swagger: http://127.0.0.1:8003/docs
+- Health: http://127.0.0.1:8003/health

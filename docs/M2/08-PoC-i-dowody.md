@@ -1,6 +1,6 @@
 # M2-08. Proof of Concept i dowody wykonalności
 
-**Cel M2:** pokazać wykonalność kluczowego etapu: automatyczny test → build obrazu → skan zależności/obrazu → bramka `CRITICAL` → publikacja do GHCR (tylko na zaufanym branchu). **Status: NIEURUCHOMIONE – DO UDOKUMENTOWANIA.**
+**Cel M2:** pokazać wykonalność kluczowego etapu: automatyczny test → build obrazu → skan zależności/obrazu → bramka `CRITICAL` → publikacja do GHCR (tylko na zaufanym branchu). **Status:** testy lokalne 2/2 PASS i start FastAPI potwierdzone 22.11.2026. CI/CD, skany i GHCR pozostają niezweryfikowane. Patrz [protokół](13-testy-lokalne-2026-11-22.md).
 
 ## Wymagania PoC
 
@@ -17,9 +17,9 @@ python -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements-dev.txt
 pytest -q
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8003
 # w osobnej konsoli
-curl -f http://127.0.0.1:8000/health
+curl -f http://127.0.0.1:8003/health
 ```
 
 ## Kroki CI
