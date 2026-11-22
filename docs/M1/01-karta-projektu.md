@@ -3,9 +3,9 @@
 **Przedmiot:** Projekt Zespołowy: Bezpieczna Infrastruktura Hybrydowa z AI, WSTI 2026/2027.
 **Temat katalogowy:** nr 04 – DevSecOps: bezpieczne wdrażanie aplikacji Edge–Cloud.
 **Nazwa własna:** SmartGate DevSecOps.
-**Zespół:** [NAZWA DO UZGODNIENIA].
+**Zespół projektowy:** SmartGate DevSecOps.
 **Repo:** https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app
-**Liczebność:** 5 (według zespołu dopuszczalne maksimum; zatwierdzenie przez prowadzącego [POTWIERDZIĆ]).
+**Skład:** pięć osób za zgodą prowadzącego.
 
 ## Role i odpowiedzialności
 
@@ -27,7 +27,7 @@ Zaprojektować oraz udokumentować **bezpieczny pipeline DevSecOps** dostarczaj�
 
 ## MVP aplikacji SmartGate
 
-1. Fikcyjna tablica z pliku/żądania HTTP → normalizacja i walidacja.
+1. Fikcyjna tablica w żądaniu HTTP → normalizacja i walidacja.
 2. Lokalna baza SQLite abonamentów → deterministyczne `OPEN`/`DENY` (bez fizycznego sterowania).
 3. Zdarzenia w lokalnej kolejce i docelowy raport do Cloud co minutę (z obsługą ponowień).
 4. Praca offline oraz kontrolowana aktualizacja uprawnień po odzyskaniu łączności.
@@ -59,12 +59,8 @@ flowchart LR
 2. Wyciek sekretów/podatny obraz w pipeline → least privilege, skany, security gate, SBOM/digest.
 3. Nieudana aktualizacja lub przerwa łączności → healthcheck, rollback, lokalne decyzje oraz trwała kolejka raportów.
 
-## Status / kryteria M1
+## Źródła danych i plan pracy
 
-- [x] Temat 04, nazwa SmartGate DevSecOps, role pięciu osób i adres repo ustalone.
-- [x] Problem, cel, zakres MVP i diagram wstępny opisane.
-- [ ] Pełne nazwiska/nazwa zespołu, jeśli wymagane.
-- [ ] Potwierdzenie przez prowadzącego dopuszczenia pięciu osób zapisane jako dowód.
-- [ ] Potwierdzenie akceptacji karty M1 przez zespół/prowadzącego.
+Demonstrator używa fikcyjnych numerów rejestracyjnych i abonamentów zapisanych w SQLite. Do monitoringu przewidziano zdarzenia z Edge oraz wyniki testów, skanów i wydań z GitHub Actions.
 
-Żaden nieuzyskany podpis lub zgoda nie jest tutaj deklarowany.
+[Plan pierwszego sprintu](03-plan-pierwszego-sprintu.md) określa podział prac przed przeglądem M2.

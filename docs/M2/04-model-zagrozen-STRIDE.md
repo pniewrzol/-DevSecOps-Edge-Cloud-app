@@ -1,10 +1,10 @@
 # M2-04. Model zagrożeń STRIDE – SmartGate DevSecOps
 
-Analiza dotyczy zarówno aplikacji parkingowej, jak i łańcucha dostaw CI/CD. Oceny i kontrole są **planowane**; nie są wynikami testów penetracyjnych.
+Analiza dotyczy zarówno aplikacji parkingowej, jak i łańcucha dostaw CI/CD. Testy potwierdzają odmowę bez klucza. Kontrole Cloud i wdrożenia opisują projekt docelowy.
 
 ## Aktywa
 
-A1 integralność lokalnych uprawnień abonamentowych; A2 poprawność decyzji `OPEN/DENY`; A3 dostępność Edge offline; A4 prywatność danych parkingowych; A5 integralność zdarzeń i raportów; A6 bezpieczeństwo pipeline i podpisanych artefaktów; A7 sekrety API i kont technicznych.
+A1 integralność lokalnych uprawnień abonamentowych; A2 poprawność decyzji `OPEN/DENY`; A3 dostępność Edge offline; A4 prywatność danych parkingowych; A5 integralność zdarzeń i raportów; A6 bezpieczeństwo pipeline i publikowanych artefaktów; A7 sekrety API i kont technicznych.
 
 | ID | STRIDE | Scenariusz / granica | Skutek | Kontrola | Dowód/test |
 |---|---|---|---|---|---|
@@ -23,10 +23,10 @@ A1 integralność lokalnych uprawnień abonamentowych; A2 poprawność decyzji `
 | CI-04 | Elevation of Privilege | runner uzyskuje dostęp do hosta Edge | przejęcie hosta | hosted isolated runner, least privilege | audyt workflow |
 | CI-05 | Denial of Service | wadliwy deploy | brak usługi | healthcheck i rollback | test przywrócenia |
 
-## Scenariusze wymagane na odbiór
+## Scenariusze weryfikacji
 
 1. **Niedozwolony dostęp:** wywołanie `/api/v1/access/check` bez API key kończy się `401` (zabezpieczenie demonstracyjne, nie produkcyjne IAM).
-2. **Blokada CRITICAL:** testowy raport Trivy prowadzi do niepowodzenia CI przed publikacją obrazu (do wykonania).
+2. **Blokada CRITICAL:** w kontrolowanym teście sprawdzić, czy bramka Trivy kończy zadanie błędem i blokuje publikację (do wykonania).
 3. **Uszkodzona wersja:** nieudany healthcheck powoduje rollback z audytem (do wykonania M3–M5).
 4. **Offline:** Edge podejmuje lokalne decyzje i przechowuje raporty do wznowienia łączności (plan testów M3–M5).
 

@@ -1,11 +1,11 @@
 # M1 – Plan pierwszego sprintu SmartGate
 
-**Cel:** opracować dokumentację M2 systemu SmartGate w zakresie tematu nr 04 DevSecOps Edge–Cloud, bez obietnicy pełnej implementacji do listopada.
+**Cel:** opracować dokumentację M2 systemu SmartGate oraz zweryfikować lokalne API i potok CI do publikacji obrazu.
 
 | Odpowiedzialny | Zadanie | Kryterium |
 |---|---|---|
 | Patryk | karta projektu, architektura C4, DFD, backlog | spójne diagramy i linki |
-| Michał | PoC GitHub Actions test/build/scan | prawdziwy run i raport lub jawna blokada |
+| Michał | PoC GitHub Actions test/build/scan | link do przebiegu CI i wynik skanów |
 | Kamil | Docker, Compose, opcje Edge i SQLite | prototyp lokalny i plan wdrożenia |
 | Kajetan | STRIDE i rejestr ryzyk | zagrożenia aplikacji parkingowej i supply-chain |
 | Bartek | źródła danych i propozycja ML/baseline | plan walidacji i metryk M4 |

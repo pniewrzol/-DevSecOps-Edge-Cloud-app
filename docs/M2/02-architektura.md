@@ -1,10 +1,10 @@
 # M2-02. Architektura logiczna SmartGate DevSecOps
 
-**Status:** architektura projektowana; Edge–Cloud, synchronizacja, monitoring, automatyczny deployment i rollback będą wdrażane po M2. Na M2 działa lokalna demonstracja API i SQLite (wyniki nowego CI wymagają sprawdzenia). Poziom: kontekst + kontenery w stylu C4.
+Na M2 działa lokalne API z SQLite oraz CI do publikacji obrazu. Diagram pokazuje również docelową usługę Cloud, synchronizację, monitoring oraz wdrożenie na Edge.
 
 ```mermaid
 flowchart TB
-  CAR["Symulowany pojazd / plik z fikcyjną tablicą"] --> API
+  CAR["Klient HTTP z fikcyjną tablicą"] --> API
   subgraph EDGE["TB2 – Edge / VM parkingowa"]
     API["SmartGate FastAPI: walidacja i decyzja OPEN/DENY"]
     DB[("SQLite: lokalne abonamenty")]
@@ -24,7 +24,8 @@ flowchart TB
   subgraph CICD["TB1 – GitHub, CI i registry"]
     GIT["GitHub Repo"] --> CI["Actions: pytest + Semgrep + Trivy"]
     CI --> GATE{"Security Gate"}
-    GATE -->|PASS| REG[("GHCR + SBOM + digest")]
+    GATE -->|PASS| REG[("GHCR: obraz i digest")]
+    GATE -->|PASS| SBOM[("GitHub Actions: artefakt SBOM")]
     GATE -->|FAIL| STOP["Blokada i audyt"]
   end
   REG -->|"Zaufany release: weryfikacja + healthcheck"| API
@@ -44,9 +45,9 @@ flowchart TB
 
 | Komponent | Rola | Status |
 |---|---|---|
-| FastAPI + SQLite Edge | lokalna decyzja, syntetyczne dane, lokalne zdarzenia | kod demonstracyjny przygotowany |
-| Kontener Docker | uruchomienie Edge bez roota | konfiguracja przygotowana, sprawdzić build |
-| GitHub Actions, Trivy/Semgrep, GHCR | security-gated CI/CD | workflow istnieje, ostatni run fail na Tests |
+| FastAPI + SQLite Edge | lokalna decyzja, syntetyczne dane, lokalne zdarzenia | potwierdzone testami i demonstracją API |
+| Kontener Docker | uruchomienie Edge bez roota | obraz zbudowany i przeskanowany w CI |
+| GitHub Actions, Trivy/Semgrep, GHCR | security-gated CI/CD | [przebieg #8](08-PoC-i-dowody.md) zakończony sukcesem |
 | Cloud sync/reporting | raport co minutę, idempotencja, wersjonowane abonamenty | plan M3 |
 | Prometheus/Grafana | telemetria z Edge + CI | plan M4 |
 | AI/ML | alarmy bezpieczeństwa i anomalie | plan M4 |

@@ -15,4 +15,4 @@
 | R09 | Zbyt szeroki zakres do M4 | 3 | 3 | 9 | najpierw M2 dokumenty i M3 minimalny end-to-end | Patryk | sprint review |
 | R10 | Ujawnienie numerów rejestracyjnych | 2 | 2 | 4 | fikcyjne dane, minimalizacja i retencja | Kajetan / Bartek | przegląd logów i raportów |
 
-**Najważniejsze dla M2:** R01, R05, R06, R09. Akceptację ryzyka wysokiego dokumentują Patryk i Kajetan; nie wpisujemy fikcyjnych zatwierdzeń.
+**Najważniejsze dla M2:** R01, R05, R06, R09. Patryk i Kajetan odnotowują decyzje o akceptacji ryzyka wysokiego w rejestrze decyzji.

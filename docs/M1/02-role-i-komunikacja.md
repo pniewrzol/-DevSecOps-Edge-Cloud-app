@@ -2,7 +2,7 @@
 
 **Uzgodniony podział zespołu (22.11.2026) – projekt SmartGate DevSecOps:** Patryk – lider / architekt; Michał i Kamil – Cloud / DevOps; Kajetan – Security Engineer; Bartek – AI / Monitoring.
 
-> Materiały WSTI planują cztery osoby; zespół otrzymał informację o dopuszczalnym maksimum pięciu osób. Formalną zgodę/status warto odnotować. Współdzielenie roli Cloud / DevOps nie oznacza dodatkowej piątej roli.
+Prowadzący zaakceptował pięcioosobowy skład. Michał odpowiada za CI/CD, a Kamil za środowisko wdrożeniowe i synchronizację.
 
 ## Macierz RACI
 
@@ -23,19 +23,10 @@ R = realizuje, A = odpowiada za wynik, C = konsultowany, I = informowany. W każ
 
 - Repozytorium: https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app
 - Issues i Pull Requests jako historia zadań; każda zmiana powinna mieć review innej osoby.
-- Spotkania synchronizacyjne: [USTALIĆ termin i kanał].
 - Decyzje techniczne i ryzyka dokumentowane po każdym przeglądzie sprintu.
 - Materiały najlepiej udostępniać 48 godzin przed kolejnymi zajęciami.
 - Bez sekretów i danych rzeczywistych w kodzie, logach i zrzutach.
 
-## Rejestr wkładu
+## Dokumentowanie wkładu
 
-| Osoba | Rola | Issue / zadanie | PR / commit | Dowód / data |
-|---|---|---|---|---|
-| Patryk | Lider / architekt | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] |
-| Michał | Cloud / DevOps | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] |
-| Kamil | Cloud / DevOps | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] |
-| Kajetan | Security Engineer | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] |
-| Bartek | AI / Monitoring | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] | [UZUPEŁNIĆ] |
-
-**Uwaga:** sama deklaracja ról nie potwierdza indywidualnego wkładu. Tabelę należy aktualizować na podstawie wykonanych prac.
+Każdy członek zespołu przypisuje do swoich zadań link do issue, PR, commita lub dokumentu, który opracował.
