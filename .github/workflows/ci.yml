@@ -25,10 +25,13 @@ jobs:
           semgrep scan --config p/python --error app
       - name: Install Trivy
         run: |
-          sudo apt-get update
-          sudo apt-get install -y wget
-          wget -qO /tmp/trivy.deb https://github.com/aquasecurity/trivy/releases/download/v0.61.1/trivy_0.61.1_Linux-64bit.deb
-          sudo dpkg -i /tmp/trivy.deb
+          trivy_package="$RUNNER_TEMP/trivy.deb"
+          curl --fail --silent --show-error --location --retry 3 \
+            https://github.com/aquasecurity/trivy/releases/download/v0.76.2/trivy_0.76.2_Linux-64bit.deb \
+            --output "$trivy_package"
+          printf '%s  %s\n' '7edaf64c8a2a0ae02137f776c6e56adf285fc36ec76b045274afdc462f20f092' "$trivy_package" | sha256sum --check
+          sudo dpkg -i "$trivy_package"
+          trivy --version
       - name: SCA - dependency vulnerability gate
         run: trivy fs --scanners vuln --severity CRITICAL --exit-code 1 --no-progress .
       - name: Build image
