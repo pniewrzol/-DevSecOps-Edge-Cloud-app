@@ -1,6 +1,6 @@
 # M1 – Role, komunikacja i ślad wkładu (5 osób)
 
-**Uzgodniony podział zespołu (22.11.2026) – projekt SmartGate DevSecOps:** Patryk – lider / architekt; Michał i Kamil – Cloud / DevOps; Kajetan – Security Engineer; Bartek – AI / Monitoring.
+**Uzgodniony podział zespołu – projekt SmartGate DevSecOps:** Patryk – lider / architekt; Michał i Kamil – Cloud / DevOps; Kajetan – Security Engineer; Bartek – AI / Monitoring.
 
 Prowadzący zaakceptował pięcioosobowy skład. Michał odpowiada za CI/CD, a Kamil za środowisko wdrożeniowe i synchronizację.
 
