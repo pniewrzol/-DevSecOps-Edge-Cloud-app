@@ -8,7 +8,7 @@
 | Skład i role | Patryk (lider i architekt), Michał (CI/CD), Kamil (wdrożenie i sieć), Kajetan (bezpieczeństwo), Bartek (monitoring i AI) |
 | Repozytorium | [SmartGate na GitHubie](https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app) |
 
-Prowadzący zaakceptował skład pięcioosobowy. Szczegóły podziału zadań i wykonanych prac są w [dokumencie ról](02-role-i-komunikacja.md).
+Szczegóły podziału zadań i wykonanych prac są w [dokumencie ról](02-role-i-komunikacja.md).
 
 ## Problem i cel
 
