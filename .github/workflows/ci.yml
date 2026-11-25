@@ -9,10 +9,10 @@ jobs:
   test-scan-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Tests
@@ -41,7 +41,7 @@ jobs:
       - name: Create SBOM (CycloneDX JSON)
         run: trivy image --format cyclonedx --output sbom.cdx.json smartgate-edge:${{ github.sha }}
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: sbom-cyclonedx
           path: sbom.cdx.json
@@ -55,13 +55,13 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: Build approved source again
         run: docker build -t smartgate-edge:${{ github.sha }} .
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
