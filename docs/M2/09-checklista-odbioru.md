@@ -1,8 +1,10 @@
-# M2 – Checklista przeglądu 27.11.2026
+# M2 – Lista materiałów na 27.11.2026
 
-- [x] Diagram Edge–Cloud i granice zaufania.
-- [x] DFD z kierunkami przepływów i magazynami danych.
-- [x] Model STRIDE, rejestr ryzyk i backlog z właścicielami.
-- [x] Dowód wykonalności lokalnego API oraz [działającego potoku CI](08-PoC-i-dowody.md).
-- [x] [Raport postępu](13-raport-postepu.md) i [scenariusz demonstracji](12-prezentacja-M2.md).
-- [ ] Udostępnić materiały prowadzącemu i przećwiczyć prezentację w zespole.
+- [x] [Diagram i granice sieci](02-architektura.md).
+- [x] [Przepływ danych](03-przeplyw-danych.md).
+- [x] [Model zagrożeń](04-model-zagrozen-STRIDE.md) i [ryzyka](05-rejestr-ryzyk.md).
+- [x] [Backlog](06-backlog.md) z planowanymi właścicielami.
+- [x] [Dowody działania API i CI](08-PoC-i-dowody.md).
+- [x] [Raport postępu](13-raport-postepu.md) oraz [plan demonstracji](12-prezentacja-M2.md).
+
+Przed spotkaniem udostępniamy link do [przeglądu M2](01-przeglad-M2.md) i powtarzamy kroki demonstracji.

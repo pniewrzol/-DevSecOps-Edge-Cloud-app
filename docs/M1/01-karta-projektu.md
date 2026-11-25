@@ -1,66 +1,48 @@
-# M1 – Karta projektu: SmartGate DevSecOps
+# M1 – Karta projektu SmartGate
 
-**Przedmiot:** Projekt Zespołowy: Bezpieczna Infrastruktura Hybrydowa z AI, WSTI 2026/2027.
-**Temat katalogowy:** nr 04 – DevSecOps: bezpieczne wdrażanie aplikacji Edge–Cloud.
-**Nazwa własna:** SmartGate DevSecOps.
-**Zespół projektowy:** SmartGate DevSecOps.
-**Repo:** https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app
-**Skład:** pięć osób za zgodą prowadzącego.
+| Pole | Ustalenie |
+|---|---|
+| Przedmiot | Projekt Zespołowy: Bezpieczna Infrastruktura Hybrydowa z AI, WSTI 2026/2027 |
+| Temat 04 | DevSecOps: bezpieczne wdrażanie aplikacji Edge–Cloud |
+| Zespół | SmartGate DevSecOps |
+| Skład i role | Patryk (lider i architekt), Michał (CI/CD), Kamil (wdrożenie i sieć), Kajetan (bezpieczeństwo), Bartek (monitoring i AI) |
+| Repozytorium | [SmartGate na GitHubie](https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app) |
 
-## Role i odpowiedzialności
+Prowadzący zaakceptował skład pięcioosobowy. Szczegóły podziału zadań i wykonanych prac są w [dokumencie ról](02-role-i-komunikacja.md).
 
-| Osoba | Rola | Odpowiedzialność |
-|---|---|---|
-| Patryk | Lider / architekt | architektura, backlog, DFD, decyzje ADR, integracja i przeglądy |
-| Michał | Cloud / DevOps | CI/CD, GitHub Actions, skanowanie, artefakty GHCR |
-| Kamil | Cloud / DevOps | Docker, Edge/Cloud VM, wdrożenia, rollback, synchronizacja |
-| Kajetan | Security Engineer | STRIDE, rejestr ryzyk, security gates, uprawnienia i testy bezpieczeństwa |
-| Bartek | AI / Monitoring | zbieranie telemetrii, alerty, dashboard, eksperyment ML i ewaluacja |
+## Problem i cel
 
-## Problem
+Gdy parking straci Internet, lokalny system nadal powinien móc sprawdzić, czy pojazd ma ważny abonament. Administrator potrzebuje też sposobu na bezpieczne dostarczenie nowej wersji programu i cofnięcie jej po awarii.
 
-Lokalna kontrola dostępu parkingowego musi podejmować decyzje także przy awarii Internetu. Jednocześnie aktualizacje oprogramowania Edge nie powinny wprowadzać podatności ani przerywać dostępności usługi. Niezabezpieczony proces dystrybucji mógłby spowodować błędne decyzje lub zmianę uprawnień.
+Projektujemy potok wdrożeniowy dla administratora parkingu. Aplikacja SmartGate symuluje decyzję szlabanu na podstawie fikcyjnych tablic. Dzięki temu możemy przećwiczyć wdrożenie, utratę połączenia z Cloud i przywrócenie poprzedniej wersji bez fizycznego szlabanu.
 
-## Cel i odbiorca
+## Zakres i technologia
 
-Zaprojektować oraz udokumentować **bezpieczny pipeline DevSecOps** dostarczający kontenerową aplikację SmartGate do symulowanego Edge, z centralnym Cloud monitoringowym, skanowaniem SAST/SCA/OCI, SBOM, kontrolą publikacji, rollbackiem, audytem i mierzalnym komponentem AI/ML. Odbiorcą jest administrator sieci parkingów/oddziałów (scenariusz laboratoryjny).
+- **Edge** podejmuje decyzje `OPEN` i `DENY` przez API FastAPI, korzysta z SQLite i zapisuje zdarzenia.
+- **GitHub Actions** testuje kod, skanuje go przez Semgrep i Trivy, buduje obraz Dockera, zapisuje SBOM i publikuje obraz w GHCR.
+- **Cloud** ma odbierać zbiorcze raporty z Edge i dane z CI. Rozdzielenie Edge i Cloud zapewnią dwie VM na Proxmoxie, w osobnych sieciach za MikroTik CHR.
+- **Docelowy prototyp** ma również wdrożyć sprawdzony obraz na Edge, sprawdzić stan aplikacji po wdrożeniu i przywrócić poprzednią wersję w razie błędu. Monitoring ma pokazać alert, a analiza AI/ML zostanie porównana z prostą regułą.
 
-## MVP aplikacji SmartGate
-
-1. Fikcyjna tablica w żądaniu HTTP → normalizacja i walidacja.
-2. Lokalna baza SQLite abonamentów → deterministyczne `OPEN`/`DENY` (bez fizycznego sterowania).
-3. Zdarzenia w lokalnej kolejce i docelowy raport do Cloud co minutę (z obsługą ponowień).
-4. Praca offline oraz kontrolowana aktualizacja uprawnień po odzyskaniu łączności.
-5. Oddzielne strefy Edge/Cloud, uwierzytelnione API, ochrona transmisji i logi bez sekretów.
-
-## MVP DevSecOps (nadrzędny cel tematu nr 04)
-
-Automatyczny build, testy, SAST/SCA/skan obrazu, blokada CRITICAL, SBOM lub podpis/manifest, bezpieczne publikowanie GHCR, wdrożenie do Edge, healthcheck, rollback, ślady audytowe. Minimalne uprawnienia i izolacja runnerów. Monitoring z dwóch źródeł oraz AI/ML porównane z baseline.
-
-## Architektura i technologie (propozycja)
-
-FastAPI + Python, SQLite (Edge), GitHub Actions, Docker/Compose, GHCR, Semgrep, Trivy, SBOM, Prometheus, Grafana i scikit-learn. Edge jako VM i Cloud jako druga odrębna VM na Proxmox – dopuszczona symulacja laboratoryjna.
+Diagram pokazuje plan projektu. Stan realizacji jest w [przeglądzie M2](../M2/01-przeglad-M2.md).
 
 ```mermaid
-flowchart LR
-  DRIVER[Symulowany pojazd] --> EDGE[Edge: SmartGate + lokalne SQLite]
-  EDGE -->|Raporty, ponowienia| CLOUD[Cloud: raporty i monitoring]
-  CLOUD -->|Wersjonowane abonamenty| EDGE
-  DEV[GitHub Repo] --> CI[Actions: test + scan + SBOM]
-  CI --> REG[GHCR]
-  REG -->|Kontrolowany deploy| EDGE
-  CI -->|Metryki pipeline| CLOUD
-  CLOUD --> ML[AI/ML: alerty]
+flowchart TB
+    U["Klient z fikcyjną tablicą"] --> E["Edge: SmartGate i SQLite"]
+    G["GitHub"] --> C["CI: testy, skany i budowa"]
+    C --> R["GHCR: obraz"]
+    R -.->|"Plan: obraz do wdrożenia"| E
+    E -.->|"Plan: raporty"| M["Cloud: monitoring"]
+    C -.->|"Plan: wyniki CI"| M
 ```
 
-## Trzy ryzyka kluczowe
+## Dane
 
-1. Nieautoryzowana modyfikacja lokalnych abonamentów i błędne `OPEN` → autoryzacja, integralność bazy, przegląd zmian i log zdarzeń.
-2. Wyciek sekretów/podatny obraz w pipeline → least privilege, skany, security gate, SBOM/digest.
-3. Nieudana aktualizacja lub przerwa łączności → healthcheck, rollback, lokalne decyzje oraz trwała kolejka raportów.
+Do testów używamy fikcyjnych tablic i abonamentów. Monitoring ma korzystać z dwóch źródeł: zagregowanych zdarzeń z Edge i wyników GitHub Actions.
 
-## Źródła danych i plan pracy
+## Trzy najważniejsze ryzyka
 
-Demonstrator używa fikcyjnych numerów rejestracyjnych i abonamentów zapisanych w SQLite. Do monitoringu przewidziano zdarzenia z Edge oraz wyniki testów, skanów i wydań z GitHub Actions.
+1. **Zmiana lokalnych abonamentów przez nieuprawnioną osobę.** Ograniczymy dostęp do SQLite i sprawdzimy poprawność aktualizacji danych.
+2. **Podatny lub podmieniony obraz.** Wprowadzamy skany i blokadę publikacji przy krytycznym wyniku. Przy wdrożeniu sprawdzimy dokładną zawartość obrazu po digescie.
+3. **Awaria aktualizacji lub sieci.** Decyzje parkingowe korzystają z lokalnej bazy. W planie są ponawianie raportów i powrót do poprzedniej wersji obrazu.
 
-[Plan pierwszego sprintu](03-plan-pierwszego-sprintu.md) określa podział prac przed przeglądem M2.
+[Plan pierwszego sprintu](03-plan-pierwszego-sprintu.md) opisuje prace przed przeglądem M2.

@@ -1,18 +1,13 @@
-# M2-11. Macierz wymagań – SmartGate / temat 04
+# M2 – Gdzie znaleźć wymagane materiały
 
-| Źródło | Wymaganie | Artefakt | Etap/status |
-|---|---|---|---|
-| Plan §4 | M2: architektura, DFD, STRIDE i backlog | 02–06 | M2: opracowane |
-| Plan §7 | dowód wykonalności | [Dowody](08-PoC-i-dowody.md) | M2: API i CI zweryfikowane |
-| Plan §5 | 2 rozdzielone logicznie warstwy Edge/Cloud | 02,03 | M3: planowane |
-| Katalog nr 04 | build + test + deploy | `.github/workflows/ci.yml`, M3 | CI i publikacja działają; wdrożenie na Edge w M3 |
-| Katalog nr 04 | SAST, SCA, image scan, critical gate | CI, STRIDE | skany przeszły; kontrolowana blokada CRITICAL do sprawdzenia |
-| Katalog nr 04 | SBOM/podpis/manifest | workflow | SBOM wygenerowany w #8 |
-| Katalog nr 04 | rollback i audyt | backlog M3/M5 | planowane |
-| Plan §5 | auth, szyfrowanie, sekrety, RBAC | STRIDE, ADR, backlog | demonstracyjne API key, reszta planowana |
-| Plan §5 | dwa źródła telemetrii | AI plan | M4: planowane |
-| Plan §5 | AI/ML z metryką i baseline | AI plan | M4: planowane |
-| SmartGate – wybór zespołu | fikcyjna tablica i lokalna decyzja | `app/main.py`, `app/parking.py`, testy | potwierdzone testami i demonstracją API |
-| SmartGate – wybór zespołu | lokalna decyzja bez usługi Cloud, raport co minutę | architektura, backlog | lokalna decyzja działa; raport w M3 |
+| Wymaganie | Materiał |
+|---|---|
+| M1 – skład, role i repozytorium | [Karta](../M1/01-karta-projektu.md), [role i wkład](../M1/02-role-i-komunikacja.md) |
+| M1 – problem, odbiorca, zakres, technologie, diagram, dane i trzy ryzyka | [Karta](../M1/01-karta-projektu.md) |
+| M1 – plan prac | [Pierwszy sprint](../M1/03-plan-pierwszego-sprintu.md) |
+| M2 – diagram i przepływ danych | [Architektura](02-architektura.md), [DFD](03-przeplyw-danych.md) |
+| M2 – model zagrożeń | [STRIDE](04-model-zagrozen-STRIDE.md), [ryzyka](05-rejestr-ryzyk.md) |
+| M2 – backlog | [Zadania i kryteria](06-backlog.md) |
+| Przed M2 – dowód wykonalności i raport asynchroniczny | [Dowody](08-PoC-i-dowody.md), [raport postępu](13-raport-postepu.md) |
 
-Ważne: **SmartGate jest demonstratorem**, a celem ocenianym w temacie 04 jest zabezpieczony pipeline DevSecOps i integracja Edge–Cloud.
+[Plan przedmiotu](../../sources/WSTI_PZBI_plan_przedmiotu.pdf) opisuje te etapy w §4, §6 i §7. [Katalog tematów](../../sources/WSTI_PZBI_katalog_8_projektow.pdf) opisuje zakres końcowy tematu 04. Wdrożenie, rollback i pomiar jakości AI są rozpisane na kolejne etapy w backlogu.

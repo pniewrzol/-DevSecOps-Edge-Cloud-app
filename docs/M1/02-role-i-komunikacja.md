@@ -1,39 +1,26 @@
-# M1 – Role, komunikacja i ślad wkładu (5 osób)
+# M1 – Role, komunikacja i wkład
 
-**Uzgodniony podział zespołu – projekt SmartGate DevSecOps:** Patryk – lider / architekt; Michał i Kamil – Cloud / DevOps; Kajetan – Security Engineer; Bartek – AI / Monitoring.
+Prowadzący zaakceptował pięcioosobowy skład zespołu.
 
-Prowadzący zaakceptował pięcioosobowy skład. Michał odpowiada za CI/CD, a Kamil za środowisko wdrożeniowe i synchronizację.
+## Uzgodniony podział odpowiedzialności
 
-## Plan odpowiedzialności (RACI)
-
-R = realizuje, A = odpowiada za wynik, C = konsultowany, I = informowany. W każdym wierszu jest jedna osoba A. Osoby Michał i Kamil współpracują przy Cloud / DevOps, z wyraźnym właścicielem danego zadania.
-
-| Obszar | Patryk | Michał | Kamil | Kajetan | Bartek |
-|---|---|---|---|---|---|
-| Karta projektu, backlog i sprint review | A/R | C | C | C | C |
-| Architektura logiczna i DFD | A/R | C | C | C | C |
-| CI/CD SmartGate, GitHub Actions, security gates | C | A/R | R | R | I |
-| Obraz OCI, GHCR, SBOM i Docker | C | R | A/R | C | I |
-| VM Edge/Cloud, lokalna baza, sieć, deployment i rollback | C | R | A/R | C | I |
-| Model zagrożeń STRIDE, IAM, ryzyka | C | C | C | A/R | C |
-| Telemetria SmartGate/CI, dashboard i AI/ML | C | C | C | C | A/R |
-| Integracja końcowa i demonstracja | A/R | R | R | R | R |
-
-## Zasady współpracy
-
-- Repozytorium: https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app
-- Issues i Pull Requests jako historia zadań; każda zmiana powinna mieć review innej osoby.
-- Decyzje techniczne i ryzyka dokumentowane po każdym przeglądzie sprintu.
-- Materiały najlepiej udostępniać 48 godzin przed kolejnymi zajęciami.
-- Bez sekretów i danych rzeczywistych w kodzie, logach i zrzutach.
+| Osoba | Rola | Za co odpowiada według planu |
+|---|---|---|
+| Patryk | Lider i architekt | Karta projektu, architektura, przepływ danych, backlog, integracja i przegląd sprintu |
+| Michał | Cloud / DevOps | Potok GitHub Actions, testy w CI, budowa i publikacja obrazu, zapis SBOM |
+| Kamil | Cloud / DevOps | Docker Compose, VM Edge i Cloud, sieć, synchronizacja, wdrożenie i rollback |
+| Kajetan | Bezpieczeństwo | Model STRIDE, rejestr ryzyk, zasady dostępu i testy blokady publikacji |
+| Bartek | Monitoring i AI | Zbieranie danych z Edge i CI, dashboard, alerty i porównanie modelu z regułą |
 
 ## Wykonane prace M1 i M2
 
-Materiały M1 i M2 udostępnione w repozytorium opracował Patryk. Tabela obejmuje wykonane prace; plan odpowiedzialności jest opisany w macierzy powyżej.
-
-| Etap | Osoba | Wykonana praca | Dowód |
+| Etap | Osoba | Co przygotowała | Dowód |
 |---|---|---|---|
-| M1 | Patryk | Karta projektu, podział ról, plan sprintu i przygotowanie repozytorium | [Dokumentacja M1](01-karta-projektu.md), [historia repozytorium](https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app/commits/main/) |
-| M2 | Patryk | Dokumentacja architektury, DFD, STRIDE i backlogu, kod i testy demonstratora, konfiguracja CI | [Przegląd M2](../M2/01-przeglad-M2.md), [przebieg CI #8](https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app/actions/runs/45068382402) |
+| M1 | Patryk | Kartę projektu, podział ról, plan sprintu i repozytorium | [Karta M1](01-karta-projektu.md), [historia zmian](https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app/commits/main/) |
+| M2 | Patryk | Dokumentację architektury, DFD, STRIDE, ryzyka i backlog oraz kod, testy i potok CI demonstratora | [Przegląd M2](../M2/01-przeglad-M2.md), [dowody działania](../M2/08-PoC-i-dowody.md) |
 
-Jeżeli ktoś wykonał pracę poza repozytorium, można dopisać osobny wiersz z etapem, nazwiskiem, konkretną czynnością i dowodem, np. notatką ze spotkania, recenzją projektu lub wynikiem testu.
+Patryk opracował materiały M1 i M2 opublikowane w repozytorium. Jeśli ktoś wykona pracę poza GitHubem, jej dowodem może być np. recenzja diagramu, notatka albo wynik testu.
+
+## Jak prowadzimy pracę
+
+Zadania i ich właścicieli zapisujemy w backlogu. Do wykonanych prac dopisujemy dowód, np. dokument, wynik testu, issue, PR lub commit. Przed przeglądem udostępniamy aktualne materiały i zapisujemy decyzje, które wpływają na kolejny etap.

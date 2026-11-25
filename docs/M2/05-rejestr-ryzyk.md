@@ -1,18 +1,13 @@
-# M2-05. Rejestr ryzyk SmartGate DevSecOps
+# M2 – Rejestr ryzyk
 
-**Metoda:** P = prawdopodobieństwo 1–3; I = wpływ 1–3; R=P×I (1–2 niskie, 3–4 średnie, 6–9 wysokie). Szacunki bez wyników testów. Weryfikować przy każdym sprint review.
+Oceniamy prawdopodobieństwo (P) i wpływ (W) od 1 do 3. Wynik to P × W. Zaczynamy od najwyższych wyników. Właściciel oznacza osobę odpowiedzialną według [planu ról](../M1/02-role-i-komunikacja.md).
 
-| ID | Ryzyko | P | I | R | Redukcja | Właściciel | Weryfikacja |
-|---|---|---:|---:|---:|---|---|---|
-| R01 | Nieautoryzowana zmiana abonamentów | 2 | 3 | 6 | kontrola wersji/sygnatur i uprawnień | Kajetan / Kamil | test odmowy i integralności |
-| R02 | Fałszywa decyzja OPEN | 2 | 3 | 6 | fail-closed dla braku/wygaśnięcia, walidacja danych | Kajetan | test nieznanej/nieaktywnej tablicy |
-| R03 | Przerwa Internetu i utrata raportów | 3 | 2 | 6 | lokalny SQLite outbox + retry/idempotencja | Kamil | test odłączenia Cloud |
-| R04 | Nieaktualne uprawnienia offline | 2 | 3 | 6 | limity ważności snapshotu, polityka revocation | Patryk / Kajetan | test wygasłego snapshotu |
-| R05 | Wyciek tokenu CI lub API key | 2 | 3 | 6 | secrets management, least privilege, review | Kajetan / Michał | skan i audyt permissions |
-| R06 | Podatny / podmieniony obraz | 2 | 3 | 6 | Trivy, SBOM, digest i policy gate | Michał / Kajetan | zablokowany run CI |
-| R07 | Wadliwe wdrożenie | 2 | 3 | 6 | healthcheck, last-known-good, rollback | Kamil | kontrolowana awaria |
-| R08 | Niepoprawny model ML | 2 | 2 | 4 | baseline, niezależny test, precision/recall/F1 | Bartek | raport M4 |
-| R09 | Zbyt szeroki zakres do M4 | 3 | 3 | 9 | najpierw M2 dokumenty i M3 minimalny end-to-end | Patryk | sprint review |
-| R10 | Ujawnienie numerów rejestracyjnych | 2 | 2 | 4 | fikcyjne dane, minimalizacja i retencja | Kajetan / Bartek | przegląd logów i raportów |
+| ID | Ryzyko | P | W | Wynik | Co robimy | Właściciel |
+|---|---|---:|---:|---:|---|---|
+| R1 | Nieuprawniona zmiana abonamentu daje fałszywe `OPEN`. | 2 | 3 | 6 | Ograniczamy dostęp do SQLite. Sprawdzamy ważność abonamentu i walidujemy aktualizacje. | Kajetan |
+| R2 | Na Edge trafia podatny lub podmieniony obraz. | 2 | 3 | 6 | Skanujemy obraz. Planujemy publikację dokładnie zeskanowanego obrazu oraz weryfikację digestu przy wdrożeniu. | Michał |
+| R3 | Awaria sieci lub wdrożenia przerywa działanie i wysyłanie raportów. | 3 | 3 | 9 | Decyzje podejmujemy lokalnie. Planujemy ponowienia, healthcheck i rollback. | Kamil |
+| R4 | Klucz API lub token trafia do logów. | 2 | 3 | 6 | Trzymamy klucze poza kodem i ograniczamy uprawnienia. Przeglądamy logi przed pokazem. | Kajetan |
+| R5 | Model daje za dużo fałszywych alertów. | 2 | 2 | 4 | Porównujemy go z prostą regułą na tych samych przypadkach testowych. | Bartek |
 
-**Najważniejsze dla M2:** R01, R05, R06, R09. Patryk i Kajetan odnotowują decyzje o akceptacji ryzyka wysokiego w rejestrze decyzji.
+R1–R3 to trzy ryzyka z [karty M1](../M1/01-karta-projektu.md). Sprawdzamy je ponownie przed wdrożeniem.

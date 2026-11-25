@@ -1,3 +1,5 @@
-# Monitoring SmartGate (M4)
+# Monitoring SmartGate
 
-Dwa źródła: Edge (OPEN/DENY, czas odpowiedzi, zaległe raporty, dostępność) i GitHub Actions (skany, build, testy, release). Na M4 zaplanowano dashboard i alert, syntetyczny zbiór danych oraz porównanie prostych progów z modelem ML według precision, recall i F1.
+Zbieramy dwa rodzaje danych: liczniki i stan raportowania z Edge oraz wyniki testów, skanów i publikacji z GitHub Actions.
+
+Na M4 rozważamy dwa rozwiązania: **Prometheus + Grafana** albo **Apache + n8n + OpenRouter**. [Porównanie w dokumentacji M2](../docs/M2/10-plan-AI-ML.md) opisuje, co trzeba przygotować i jak porównać alerty z prostą regułą.

@@ -1,31 +1,21 @@
-# M2-06. Backlog SmartGate DevSecOps – pięć osób, M2–M7
+# M2 – Backlog SmartGate
 
-Statusy: `GOTOWA DOKUMENTACJA`, `ZWERYFIKOWANE`, `CZĘŚCIOWO`, `TODO`. P0 obowiązkowe; P1 ważne; P2 rozszerzenie. Dowodem wykonania zadania jest PR/commit, review i (gdy dotyczy) test/link do runu.
+Właściciele poniżej odpowiadają za **następne prace** zgodnie z [planem ról](../M1/02-role-i-komunikacja.md). Faktyczny wkład do M2 jest zapisany w [rejestrze wkładu](../M1/02-role-i-komunikacja.md#wykonane-prace-m1-i-m2).
 
-| ID | Etap | Zadanie | Właściciel | Priorytet | Kryterium akceptacji | Status |
-|---|---|---|---|---|---|---|
-| M2-01 | M2 27.11 | Karta projektu SmartGate, role i cel | Patryk | P0 | link, MVP parking + DevSecOps | GOTOWA DOKUMENTACJA |
-| M2-02 | M2 | C4 / architektura Edge–Cloud | Patryk + Kamil | P0 | granice stref i komponenty | GOTOWA DOKUMENTACJA |
-| M2-03 | M2 | DFD SmartGate + CI/CD | Patryk + Kajetan | P0 | dane, strefy, przepływy | GOTOWA DOKUMENTACJA |
-| M2-04 | M2 | STRIDE i rejestr ryzyk | Kajetan | P0 | co najmniej 6 klas i testy | GOTOWA DOKUMENTACJA |
-| M2-05 | M2 | Review ADR i decyzje otwarte | Patryk | P0 | status zaakceptowany przez zespół | TODO |
-| M2-06 | M2 | PoC test/build/scan i dowody | Michał + Kajetan | P0 | zielone CI, raport skanów | ZWERYFIKOWANE ([#8](08-PoC-i-dowody.md)) |
-| M2-07 | M2 | Symulator decyzji z fikcyjną tablicą | Kamil + Patryk | P1 | OPEN/DENY i 401, pytest | ZWERYFIKOWANE |
-| M2-08 | M2 | Projekt danych i metryki AI | Bartek | P1 | baseline, schema, metryki | GOTOWA DOKUMENTACJA |
-| M3-01 | M3 11.12 | Edge/Cloud – 2 VM lub logiczne strefy | Kamil + Michał | P0 | udokumentowana separacja | TODO |
-| M3-02 | M3 | Lokalna SQLite abonamentów, outbox trwały | Kamil | P0 | offline decyzje i brak utraty zdarzeń | CZĘŚCIOWO: lokalny zapis zdarzeń |
-| M3-03 | M3 | Synchronizacja raportu co 60 s i snapshot uprawnień | Kamil + Bartek | P0 | idempotencja, retry, auth/TLS | TODO |
-| M3-04 | M3 | Zabezpieczenia API, polityka secretów | Kajetan | P0 | odmowa anonimowa, autoryzacja aktualizacji | CZĘŚCIOWO: demo API key |
-| M3-05 | M3 | Publikacja zeskanowanego obrazu OCI i test blokady CRITICAL | Michał + Kajetan | P0 | publikacja obrazu o zweryfikowanym digescie; kontrolowana blokada publikacji | CZĘŚCIOWO: działa ścieżka pozytywna |
-| M3-06 | M3 | Wdrożenie Edge/Cloud + healthcheck | Kamil + Michał | P0 | commit→CI→image→deploy | TODO |
-| M3-07 | M3 | Rollback last-known-good + audyt | Kamil | P0 | wadliwa wersja automatycznie cofnięta | TODO |
-| M4-01 | M4 12.12 | Telemetria z Edge i CI | Bartek | P0 | min. 2 źródła | TODO |
-| M4-02 | M4 | Dashboard, alert zdarzeń parkingowych | Bartek | P0 | 1 wykryty incydent | TODO |
-| M4-03 | M4 | Oznaczony dataset syntetyczny | Bartek | P0 | data split z opisem | TODO |
-| M4-04 | M4 | Baseline i model ML | Bartek | P0 | precision/recall/F1 porównane | TODO |
-| M5-01 | M5 15.01 | Plan i dowody testów (offline, API, CRITICAL) | Kajetan + Patryk | P0 | scenariusze i wyniki | TODO |
-| M5-02 | M5 | Test rollbacku i odtwarzalności | Kamil | P0 | dowód odtworzenia | TODO |
-| M6-01 | M6 16.01 | Audyt techniczny / przegląd konfiguracji | Kajetan + Patryk | P0 | lista kontroli i dowody | TODO |
-| M7-01 | M7 31.01 | Finalny raport, repo, demo i wkład zespołu | Patryk + cały zespół | P0 | prezentacja end-to-end, Q&A | TODO |
+Na M2 gotowe są diagram, DFD, STRIDE, rejestr ryzyk i backlog. Działa lokalne API z testami oraz potok do publikacji obrazu. Szczegóły są w [dowodach M2](08-PoC-i-dowody.md).
 
-**Ważne:** prace M3 i M4 trzeba prowadzić równolegle – odbiory dzieli jeden dzień. Patryk koordynuje review, ale właściciel danego zadania odpowiada za jego dowóz.
+| Etap | Zadanie | Planowany właściciel | Kiedy uznamy je za zrobione | Stan |
+|---|---|---|---|---|
+| M3 – 11.12 | Sprawdzić sieć Proxmox i CHR | Kamil | Obie VM mają Internet. Edge łączy się z Cloud po HTTPS. Cloud nie otwiera nowego połączenia do Edge. | Środowisko przygotowywane |
+| M3 – 11.12 | Dostarczać dokładnie zeskanowany obraz | Michał | GHCR otrzymuje obraz z zadania skanowania. Digest jest zapisany do porównania przy wdrożeniu. | Do zrobienia |
+| M3 – 11.12 | Uruchomić obraz na Edge | Kamil | Wdrożenie jest powtarzalne, API przechodzi healthcheck, a baza zostaje po restarcie. | Do zrobienia |
+| M3 – 11.12 | Przesłać pierwszy raport do Cloud | Kamil | Odbiornik po HTTPS przyjmuje uwierzytelniony raport. Po przerwie Edge ponawia wysyłkę, a Cloud nie liczy duplikatu. | Do zrobienia |
+| Po pierwszym przepływie M3 | Aktualizować abonamenty na Edge | Kamil | Edge przyjmuje tylko poprawne, uwierzytelnione i nowsze dane. | Do zrobienia |
+| M4 – 12.12 | Wybrać wariant monitoringu i zebrać dane | Bartek | Dashboard pokazuje dane z Edge i GitHub Actions. Widać przynajmniej jeden alert. | Dwa warianty opisane |
+| M4 – 12.12 | Ocenić analizę AI/ML | Bartek | Reguła i model mają wyniki precision, recall i F1 na tym samym oznaczonym zbiorze testowym. | Do zrobienia |
+| M5 – 15.01 | Sprawdzić blokadę `CRITICAL` i działanie offline | Kajetan | Kontrolowany test zatrzymuje publikację. Edge odpowiada po utracie Cloud. Są wyniki i logi. | Do zrobienia |
+| M5 – 15.01 | Sprawdzić rollback | Kamil | Po błędzie można wrócić do ostatniego poprawnego obrazu bez utraty bazy. Wynik jest zapisany. | Do zrobienia |
+| M6 – 16.01 | Przejrzeć konfigurację i dowody | Kajetan | Można powiązać wydanie, skan, wdrożenie i rollback z logami. | Do zrobienia |
+| M7 – 31.01 | Złożyć dokumentację i przygotować obronę | Patryk | Repozytorium, demonstracja i faktyczny wkład osób są udokumentowane. | Do zrobienia |
+
+Daty M5–M7 dotyczą 2027 r. Kolejność prac zaczyna się od gotowego obrazu, sieci i jednego raportu. Dashboard i model mogą być przygotowywane równolegle na danych testowych.

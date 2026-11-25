@@ -1,13 +1,13 @@
-# M1 – Plan pierwszego sprintu SmartGate
+# M1 – Plan pierwszego sprintu
 
-**Cel:** opracować dokumentację M2 systemu SmartGate oraz zweryfikować lokalne API i potok CI do publikacji obrazu.
+Cel sprintu to przygotowanie dokumentacji M2 oraz sprawdzenie, czy lokalne API i potok do publikacji obrazu działają.
 
-| Odpowiedzialny | Zadanie | Kryterium |
+| Planowany właściciel | Zadanie | Co można pokazać po wykonaniu |
 |---|---|---|
-| Patryk | karta projektu, architektura C4, DFD, backlog | spójne diagramy i linki |
-| Michał | PoC GitHub Actions test/build/scan | link do przebiegu CI i wynik skanów |
-| Kamil | Docker, Compose, opcje Edge i SQLite | prototyp lokalny i plan wdrożenia |
-| Kajetan | STRIDE i rejestr ryzyk | zagrożenia aplikacji parkingowej i supply-chain |
-| Bartek | źródła danych i propozycja ML/baseline | plan walidacji i metryk M4 |
+| Patryk | Karta projektu, architektura, przepływ danych i backlog | Diagramy i lista następnych zadań |
+| Michał | Testy, skany i publikacja w GitHub Actions | Link do przebiegu i plik SBOM |
+| Kamil | Docker Compose oraz plan sieci i wdrożenia | Instrukcja uruchomienia i układ maszyn |
+| Kajetan | STRIDE i ryzyka | Lista zagrożeń, zabezpieczeń i prób do wykonania |
+| Bartek | Źródła danych i pomysł na monitoring | Dwa źródła danych, przykład alertu i sposób oceny analizy |
 
-Zależności: zdefiniować kontrakt API i architekturę przed implementacją synchronizacji. GitHub Issues + PR; przegląd przez inną osobę; szczegółowy udział każdego dokumentować linkiem do commitu. Spotkanie M2: **27.11.2026**; zalecane materiały do **25.11**.
+Spotkanie M2 jest 27.11.2026. Plan przedmiotu proponuje udostępnić materiały 48 godzin wcześniej. To, kto faktycznie przygotował poszczególne prace, jest zapisane w [rejestrze wkładu](02-role-i-komunikacja.md#wykonane-prace-m1-i-m2).
