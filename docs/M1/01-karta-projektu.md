@@ -6,7 +6,7 @@
 | Temat 04 | DevSecOps: bezpieczne wdrażanie aplikacji Edge–Cloud |
 | Zespół | SmartGate DevSecOps |
 | Skład i role | Patryk (lider i architekt), Michał (CI/CD), Kamil (wdrożenie i sieć), Kajetan (bezpieczeństwo), Bartek (monitoring i AI) |
-| Repozytorium | [SmartGate na GitHubie](https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app) |
+| Repozytorium | [SmartGate na GitHubie](https://github.com/pniewrzol/DevSecOps-Edge-Cloud-app) |
 
 Szczegóły podziału zadań i wykonanych prac są w [dokumencie ról](02-role-i-komunikacja.md).
 

@@ -12,7 +12,7 @@ SmartGate to symulator wjazdu na parking. Podajemy fikcyjny numer rejestracyjny.
 
 ## Stan na M2
 
-Działa lokalne API SmartGate. GitHub Actions uruchamia testy i skany, buduje obraz, zapisuje listę jego składników (SBOM) i publikuje obraz w GHCR. W [przebiegu #8](https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app/actions/runs/45068382402) przeszły oba zadania, także publikacja.
+Działa lokalne API SmartGate. GitHub Actions uruchamia testy i skany, buduje obraz, zapisuje listę jego składników (SBOM) i publikuje obraz w GHCR. W [przebiegu #8](https://github.com/pniewrzol/DevSecOps-Edge-Cloud-app/actions/runs/45068382402) przeszły oba zadania, także publikacja.
 
 Na następny etap planujemy uruchomienie obrazu na VM Edge i przesłanie raportu do VM Cloud. [Infrastruktura](infrastructure/README.md) opisuje układ maszyn, a [plan monitoringu](docs/M2/10-plan-AI-ML.md) porównuje dwa warianty.
 

@@ -14,7 +14,7 @@
 
 | Etap | Osoba | Co przygotowała | Dowód |
 |---|---|---|---|
-| M1 | Patryk | Kartę projektu, podział ról, plan sprintu i repozytorium | [Karta M1](01-karta-projektu.md), [historia zmian](https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app/commits/main/) |
+| M1 | Patryk | Kartę projektu, podział ról, plan sprintu i repozytorium | [Karta M1](01-karta-projektu.md), [historia zmian](https://github.com/pniewrzol/DevSecOps-Edge-Cloud-app/commits/main/) |
 | M2 | Patryk | Dokumentację architektury, DFD, STRIDE, ryzyka i backlog oraz kod, testy i potok CI demonstratora | [Przegląd M2](../M2/01-przeglad-M2.md), [dowody działania](../M2/08-PoC-i-dowody.md) |
 
 ## Jak prowadzimy pracę
