@@ -4,5 +4,3 @@
 - [x] Karta zawiera wstępny diagram, technologie, źródła danych i trzy główne ryzyka.
 - [x] [Role](02-role-i-komunikacja.md) opisują plan odpowiedzialności i faktyczny wkład.
 - [x] [Plan sprintu](03-plan-pierwszego-sprintu.md) zawiera zadania, właścicieli i wyniki, których oczekujemy.
-
-Pełne dane członków zespołu można podać prowadzącemu w wiadomości przekazującej projekt.
