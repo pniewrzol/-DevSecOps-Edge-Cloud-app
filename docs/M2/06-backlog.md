@@ -17,5 +17,3 @@ Na M2 gotowe są diagram, DFD, STRIDE, rejestr ryzyk i backlog. Działa lokalne 
 | M5 – 15.01 | Sprawdzić rollback | Kamil | Po błędzie można wrócić do ostatniego poprawnego obrazu bez utraty bazy. Wynik jest zapisany. | Do zrobienia |
 | M6 – 16.01 | Przejrzeć konfigurację i dowody | Kajetan | Można powiązać wydanie, skan, wdrożenie i rollback z logami. | Do zrobienia |
 | M7 – 31.01 | Złożyć dokumentację i przygotować obronę | Patryk | Repozytorium, demonstracja i faktyczny wkład osób są udokumentowane. | Do zrobienia |
-
-Daty M5–M7 dotyczą 2027 r. Kolejność prac zaczyna się od gotowego obrazu, sieci i jednego raportu. Dashboard i model mogą być przygotowywane równolegle na danych testowych.
