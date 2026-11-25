@@ -1,7 +1,5 @@
 # M2 – Przegląd SmartGate
 
-Na spotkaniu 27.11.2026 pokazujemy projekt Edge–Cloud, zagrożenia, zadania na kolejne etapy oraz dowody działania lokalnego API i CI.
-
 | Materiał | Gdzie go znaleźć |
 |---|---|
 | Diagram systemu i granice sieci | [Architektura](02-architektura.md) |
