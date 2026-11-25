@@ -5,4 +5,4 @@
 - [x] [Model zagrożeń](04-model-zagrozen-STRIDE.md) i [ryzyka](05-rejestr-ryzyk.md).
 - [x] [Backlog](06-backlog.md) z planowanymi właścicielami.
 - [x] [Dowody działania API i CI](08-PoC-i-dowody.md).
-- [x] [Raport postępu](13-raport-postepu.md) oraz [plan demonstracji](12-prezentacja-M2.md).
+- [x] Raport postępu przygotowany jako osobny PDF.

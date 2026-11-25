@@ -7,7 +7,7 @@ SmartGate to symulator wjazdu na parking. Podajemy fikcyjny numer rejestracyjny.
 ## Materiały do przeglądu
 
 - **M1** — [karta projektu](docs/M1/01-karta-projektu.md), [skład, role i wykonane prace](docs/M1/02-role-i-komunikacja.md), [plan sprintu](docs/M1/03-plan-pierwszego-sprintu.md).
-- **M2** — [przegląd materiałów](docs/M2/01-przeglad-M2.md), [dowody działania](docs/M2/08-PoC-i-dowody.md), [krótki raport postępu](docs/M2/13-raport-postepu.md).
+- **M2** — [przegląd materiałów](docs/M2/01-przeglad-M2.md), [dowody działania](docs/M2/08-PoC-i-dowody.md). Raport postępu jest osobnym PDF-em.
 - [Materiały WSTI](sources/README.md).
 
 ## Stan na M2

@@ -20,7 +20,7 @@ Projektujemy potok wdrożeniowy dla administratora parkingu. Aplikacja SmartGate
 
 - **Edge** podejmuje decyzje `OPEN` i `DENY` przez API FastAPI, korzysta z SQLite i zapisuje zdarzenia.
 - **GitHub Actions** testuje kod, skanuje go przez Semgrep i Trivy, buduje obraz Dockera, zapisuje SBOM i publikuje obraz w GHCR.
-- **Cloud** ma odbierać zbiorcze raporty z Edge i dane z CI. Rozdzielenie Edge i Cloud zapewnią dwie VM na Proxmoxie, w osobnych sieciach za MikroTik CHR.
+- **Cloud** ma odbierać zbiorcze raporty z Edge i dane z CI. Wariant podstawowy to dwie VM na Proxmoxie w osobnych sieciach za MikroTik CHR. Wariant zapasowy to lokalny Edge i Cloud na VPS. [Opis infrastruktury](../../infrastructure/README.md).
 - **Docelowy prototyp** ma również wdrożyć sprawdzony obraz na Edge, sprawdzić stan aplikacji po wdrożeniu i przywrócić poprzednią wersję w razie błędu. Monitoring ma pokazać alert, a analiza AI/ML zostanie porównana z prostą regułą.
 
 Diagram pokazuje plan projektu. Stan realizacji jest w [przeglądzie M2](../M2/01-przeglad-M2.md).
