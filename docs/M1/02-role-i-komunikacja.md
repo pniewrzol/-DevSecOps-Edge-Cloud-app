@@ -1,7 +1,5 @@
 # M1 – Role, komunikacja i wkład
 
-Prowadzący zaakceptował pięcioosobowy skład zespołu.
-
 ## Uzgodniony podział odpowiedzialności
 
 | Osoba | Rola | Za co odpowiada według planu |
@@ -18,8 +16,6 @@ Prowadzący zaakceptował pięcioosobowy skład zespołu.
 |---|---|---|---|
 | M1 | Patryk | Kartę projektu, podział ról, plan sprintu i repozytorium | [Karta M1](01-karta-projektu.md), [historia zmian](https://github.com/pniewrzol/-DevSecOps-Edge-Cloud-app/commits/main/) |
 | M2 | Patryk | Dokumentację architektury, DFD, STRIDE, ryzyka i backlog oraz kod, testy i potok CI demonstratora | [Przegląd M2](../M2/01-przeglad-M2.md), [dowody działania](../M2/08-PoC-i-dowody.md) |
-
-Patryk opracował materiały M1 i M2 opublikowane w repozytorium. Jeśli ktoś wykona pracę poza GitHubem, jej dowodem może być np. recenzja diagramu, notatka albo wynik testu.
 
 ## Jak prowadzimy pracę
 
